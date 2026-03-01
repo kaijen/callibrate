@@ -229,6 +229,17 @@ class ImportScreen extends ConsumerWidget {
             ),
           );
 
+          if (q.hasResolution) {
+            await db.insertResolution(
+              ResolutionsCompanion.insert(
+                questionId: id,
+                outcome: q.resolution!.outcome,
+                notes: drift.Value(q.resolution!.notes),
+                numericOutcome: drift.Value(q.resolution!.numericOutcome),
+              ),
+            );
+          }
+
           if (q.hasEstimateData) {
             double probability;
             drift.Value<bool?> binaryChoice = const drift.Value(null);

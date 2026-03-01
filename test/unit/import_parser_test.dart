@@ -1,5 +1,21 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:callibrate/core/utils/import_parser.dart';
+
+// Hilfsfunktionen: spiegeln die Obfuskierung in app_database.dart
+String _rot13(String input) {
+  return String.fromCharCodes(input.codeUnits.map((c) {
+    if (c >= 65 && c <= 90) return (c - 65 + 13) % 26 + 65;
+    if (c >= 97 && c <= 122) return (c - 97 + 13) % 26 + 97;
+    return c;
+  }));
+}
+
+String _obfuscate(Map<String, dynamic> data) {
+  final json = jsonEncode(data);
+  final rot13 = _rot13(json);
+  return base64Encode(utf8.encode(rot13));
+}
 
 void main() {
   group('ImportParser.parse() with JSON', () {
@@ -368,6 +384,100 @@ questions:
       expect(result.category, 'epistemic'); // aus erster Frage
       expect(result.questions[0].category, 'epistemic');
       expect(result.questions[1].category, 'aleatory');
+    });
+
+    test('parst Resolution als Plain-Map (Rückwärtskompatibilität)', () {
+      const content = '''
+{
+  "version": 2,
+  "exportedAt": "2026-03-01T12:00:00.000Z",
+  "questions": [
+    {
+      "text": "Frage mit Resolution",
+      "category": "epistemic",
+      "predictionType": "probability",
+      "tags": [],
+      "hasKnownAnswer": false,
+      "knownAnswer": null,
+      "createdAt": "2026-03-01T10:00:00.000Z",
+      "estimate": {
+        "probability": 0.7,
+        "lowerBound": null,
+        "upperBound": null,
+        "unit": null,
+        "confidenceLevel": 0.9,
+        "binaryChoice": null,
+        "createdAt": "2026-03-01T10:05:00.000Z"
+      },
+      "resolution": {
+        "outcome": true,
+        "numericOutcome": null,
+        "notes": "Hat geklappt",
+        "resolvedAt": "2026-03-01T14:00:00.000Z"
+      }
+    }
+  ]
+}
+''';
+      final result = ImportParser.parse(content, 'export.json');
+      final q = result.questions.first;
+      expect(q.hasResolution, isTrue);
+      expect(q.resolution!.outcome, isTrue);
+      expect(q.resolution!.notes, 'Hat geklappt');
+      expect(q.resolution!.numericOutcome, isNull);
+    });
+
+    test('parst obfuskierte Resolution (Base64+ROT13)', () {
+      final obfuscatedResolution = _obfuscate({
+        'outcome': false,
+        'numericOutcome': 42.5,
+        'notes': 'Test-Notiz',
+        'resolvedAt': '2026-03-01T14:00:00.000Z',
+      });
+      final content = jsonEncode({
+        'version': 2,
+        'exportedAt': '2026-03-01T12:00:00.000Z',
+        'questions': [
+          {
+            'text': 'Frage mit obfuskierter Resolution',
+            'category': 'aleatory',
+            'predictionType': 'probability',
+            'tags': [],
+            'hasKnownAnswer': false,
+            'knownAnswer': null,
+            'createdAt': '2026-03-01T10:00:00.000Z',
+            'resolution': obfuscatedResolution,
+          }
+        ],
+      });
+      final result = ImportParser.parseAutoDetect(content);
+      final q = result.questions.first;
+      expect(q.hasResolution, isTrue);
+      expect(q.resolution!.outcome, isFalse);
+      expect(q.resolution!.numericOutcome, 42.5);
+      expect(q.resolution!.notes, 'Test-Notiz');
+    });
+
+    test('Frage ohne Resolution hat hasResolution=false', () {
+      const content = '''
+{
+  "version": 2,
+  "exportedAt": "2026-03-01T12:00:00.000Z",
+  "questions": [
+    {
+      "text": "Frage ohne Resolution",
+      "category": "epistemic",
+      "predictionType": "probability",
+      "tags": [],
+      "hasKnownAnswer": false,
+      "knownAnswer": null,
+      "createdAt": "2026-03-01T10:00:00.000Z"
+    }
+  ]
+}
+''';
+      final result = ImportParser.parse(content, 'export.json');
+      expect(result.questions.first.hasResolution, isFalse);
     });
 
     test('v1: fehlende category wirft weiterhin Exception', () {

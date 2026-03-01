@@ -1,6 +1,18 @@
 import 'dart:convert';
 import 'package:yaml/yaml.dart';
 
+class ImportResolution {
+  final bool outcome;
+  final double? numericOutcome;
+  final String? notes;
+
+  const ImportResolution({
+    required this.outcome,
+    this.numericOutcome,
+    this.notes,
+  });
+}
+
 class ImportQuestion {
   final String text;
   final String? category;        // per-Frage, nur in v2-Exporten gesetzt
@@ -15,6 +27,7 @@ class ImportQuestion {
   final double? lowerBound;      // für interval
   final double? upperBound;      // für interval
   final String? unit;            // für interval (z.B. "km", "°C")
+  final ImportResolution? resolution;
 
   const ImportQuestion({
     required this.text,
@@ -29,7 +42,10 @@ class ImportQuestion {
     this.lowerBound,
     this.upperBound,
     this.unit,
+    this.resolution,
   });
+
+  bool get hasResolution => resolution != null;
 
   bool get hasEstimateData {
     return (predictionType == 'probability' && probability != null) ||
@@ -197,6 +213,23 @@ class ImportParser {
         unit = qMap['unit'] as String?;
       }
 
+      // v2: resolution (plain Map oder obfuskierter String)
+      ImportResolution? importResolution;
+      if (versionInt >= 2) {
+        final rawRes = qMap['resolution'];
+        if (rawRes is String) {
+          try {
+            final resMap = _deobfuscateResolution(rawRes);
+            importResolution = _parseResolutionMap(resMap);
+          } catch (_) {
+            // ungültige Obfuskierung → ignorieren
+          }
+        } else if (rawRes is Map) {
+          importResolution =
+              _parseResolutionMap(Map<String, dynamic>.from(rawRes));
+        }
+      }
+
       questions.add(ImportQuestion(
         text: text,
         category: questionCategory,
@@ -210,6 +243,7 @@ class ImportParser {
         lowerBound: lowerBound,
         upperBound: upperBound,
         unit: unit,
+        resolution: importResolution,
       ));
     }
 
@@ -225,6 +259,30 @@ class ImportParser {
       source: data['source'] as String?,
       questions: questions,
     );
+  }
+
+  static ImportResolution _parseResolutionMap(Map<String, dynamic> map) {
+    return ImportResolution(
+      outcome: map['outcome'] as bool? ?? false,
+      numericOutcome: (map['numericOutcome'] as num?)?.toDouble(),
+      notes: map['notes'] as String?,
+    );
+  }
+
+  /// Base64 dekodieren, dann ROT13 dekodieren.
+  static Map<String, dynamic> _deobfuscateResolution(String obfuscated) {
+    final bytes = base64Decode(obfuscated);
+    final rot13encoded = utf8.decode(bytes);
+    final plain = _rot13(rot13encoded);
+    return jsonDecode(plain) as Map<String, dynamic>;
+  }
+
+  static String _rot13(String input) {
+    return String.fromCharCodes(input.codeUnits.map((c) {
+      if (c >= 65 && c <= 90) return (c - 65 + 13) % 26 + 65;
+      if (c >= 97 && c <= 122) return (c - 97 + 13) % 26 + 97;
+      return c;
+    }));
   }
 
   static Map<String, dynamic> _yamlToMap(dynamic yaml) {

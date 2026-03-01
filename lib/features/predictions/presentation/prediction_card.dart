@@ -59,6 +59,25 @@ class PredictionCard extends StatelessWidget {
                       ),
                 ],
               ),
+              if (prediction.estimate == null &&
+                  prediction.resolution != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.lock_outline,
+                        size: 16, color: Colors.grey.shade500),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Lösung vorhanden',
+                      style:
+                          Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey.shade500,
+                                fontStyle: FontStyle.italic,
+                              ),
+                    ),
+                  ],
+                ),
+              ],
               if (prediction.estimate != null) ...[
                 const SizedBox(height: 8),
                 Row(

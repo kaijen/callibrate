@@ -248,12 +248,12 @@ class AppDatabase extends _$AppDatabase {
             'createdAt': estimate.createdAt.toIso8601String(),
           },
         if (resolution != null)
-          'resolution': {
+          'resolution': _obfuscateResolution({
             'outcome': resolution.outcome,
             'numericOutcome': resolution.numericOutcome,
             'notes': resolution.notes,
             'resolvedAt': resolution.resolvedAt.toIso8601String(),
-          },
+          }),
       });
     }
     return {
@@ -262,6 +262,21 @@ class AppDatabase extends _$AppDatabase {
       'questions': result,
     };
   }
+}
+
+/// ROT13 anwenden, dann Base64 kodieren.
+String _obfuscateResolution(Map<String, dynamic> resolution) {
+  final plain = jsonEncode(resolution);
+  final rot13 = _rot13(plain);
+  return base64Encode(utf8.encode(rot13));
+}
+
+String _rot13(String input) {
+  return String.fromCharCodes(input.codeUnits.map((c) {
+    if (c >= 65 && c <= 90) return (c - 65 + 13) % 26 + 65;
+    if (c >= 97 && c <= 122) return (c - 97 + 13) % 26 + 97;
+    return c;
+  }));
 }
 
 LazyDatabase _openConnection() {
