@@ -208,15 +208,10 @@ schema-identisch behandelt.
   "source": "Meine Trivia-Sammlung 2026",
   "questions": [
     {
-      "text": "War Albert Einstein Linkshänder?",
-      "tags": ["history", "science"],
-      "answer": false,
-      "deadline": null
-    },
-    {
       "text": "Liegt Santiago de Chile östlich von New York?",
       "tags": ["geography"],
-      "answer": true
+      "answer": true,
+      "probability": 0.35
     }
   ]
 }
@@ -225,14 +220,20 @@ schema-identisch behandelt.
 ```yaml
 version: 1
 category: aleatory
-source: Wetterprognosen März 2026
+source: Alltagsprognosen
 questions:
-  - text: Regnet es am 15. März in Berlin?
-    tags: [weather, daily]
-    deadline: "2026-03-15"
-  - text: Überschreitet der DAX am 31. März 22000 Punkte?
-    tags: [finance]
-    deadline: "2026-03-31"
+  - text: Wird es morgen regnen?
+    tags: [weather]
+    predictionType: binary
+    binaryChoice: true
+    confidenceLevel: 0.65
+  - text: Wie viele Kilometer werde ich im März laufen?
+    tags: [health]
+    predictionType: interval
+    lowerBound: 20
+    upperBound: 45
+    confidenceLevel: 0.8
+    unit: km
 ```
 
 Felder:
@@ -246,6 +247,13 @@ Felder:
 | `questions[].tags` | nein | Liste von Schlagworten |
 | `questions[].answer` | nein | Bekannte Antwort (für Trivia/Historisches) |
 | `questions[].deadline` | nein | ISO-8601-Datum, wann die Frage auflöst |
+| `questions[].predictionType` | nein | `probability` (Standard), `binary`, `interval` |
+| `questions[].probability` | nein | Schätzwert 0–1 (für `probability`-Typ) |
+| `questions[].binaryChoice` | nein | `true`/`false` – Ja oder Nein (für `binary`) |
+| `questions[].confidenceLevel` | nein | Konfidenz 0–1 (für `binary` und `interval`, Standard: 0.9) |
+| `questions[].lowerBound` | nein | Untergrenze (für `interval`) |
+| `questions[].upperBound` | nein | Obergrenze (für `interval`) |
+| `questions[].unit` | nein | Einheit des Intervalls, z.B. `km`, `°C` |
 
 ---
 
@@ -409,6 +417,7 @@ callibrate/
 │   └── shared/
 │       ├── widgets/
 │       │   ├── probability_slider.dart
+│       │   ├── estimate_inputs.dart    # EstimateFormState, BinaryEstimateInput, IntervalEstimateInput, ConfidenceSlider
 │       │   └── calibration_chart.dart
 │       └── theme/
 │           └── app_theme.dart
@@ -428,11 +437,13 @@ callibrate/
 
 ### Datenbanktabellen (Drift)
 
+Schemaversion: **2** (Migration via `MigrationStrategy.onUpgrade`).
+
 ```dart
 // Frage / Vorhersage-Gegenstand
 class Questions extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get text => text()();
+  TextColumn get questionText => text().named('text')();
   TextColumn get category => text()();        // 'epistemic' | 'aleatory'
   TextColumn get tags => text().withDefault(const Constant('[]'))(); // JSON-Array
   TextColumn get source => text().nullable()(); // Herkunft beim Import
@@ -440,14 +451,24 @@ class Questions extends Table {
   BoolColumn get knownAnswer => boolean().nullable()();
   DateTimeColumn get deadline => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get predictionType =>          // 'probability' | 'binary' | 'interval'
+      text().withDefault(const Constant('probability'))();
 }
 
 // Schätzung (Wahrscheinlichkeitsbewertung)
 class Estimates extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get questionId => integer().references(Questions, #id)();
-  RealColumn get probability => real()();    // 0.0–1.0
+  RealColumn get probability => real()();   // 0.0–1.0 – kanonischer Kalibrierwert
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  RealColumn get confidenceLevel => real().withDefault(const Constant(0.9))();
+  BoolColumn get binaryChoice => boolean().nullable()(); // true=JA, false=NEIN
+  RealColumn get lowerBound => real().nullable()();
+  RealColumn get upperBound => real().nullable()();
+  TextColumn get unit => text().nullable()(); // z.B. "m", "°C"
+
+  @override
+  List<Set<Column>> get uniqueKeys => [{questionId}]; // max. eine Schätzung pro Frage
 }
 
 // Auflösung (tatsächliches Ergebnis)
@@ -457,6 +478,7 @@ class Resolutions extends Table {
   BoolColumn get outcome => boolean()();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get resolvedAt => dateTime().withDefault(currentDateAndTime)();
+  RealColumn get numericOutcome => real().nullable()(); // für interval-Typ
 }
 
 // Importprotokoll
@@ -495,8 +517,8 @@ class Prediction with _$Prediction {
 |-------|--------|--------------|
 | `/` | HomeScreen | Dashboard mit Übersicht und offenen Schätzungen |
 | `/predictions` | PredictionsScreen | Liste aller Vorhersagen, filterbar |
-| `/new` | NewPredictionScreen | Manuelle Erfassung einer neuen Vorhersage |
-| `/estimate/:id` | EstimateScreen | Wahrscheinlichkeit schätzen (Slider 0–100 %) |
+| `/new` | NewPredictionScreen | Manuelle Erfassung einer neuen Vorhersage; optional mit sofortiger Schätzung |
+| `/estimate/:id` | EstimateScreen | Wahrscheinlichkeit schätzen (Slider, Ja/Nein, Intervall) |
 | `/resolve/:id` | ResolveScreen | Ergebnis eintragen |
 | `/stats` | StatsScreen | Kalibrierungsstatistiken und Diagramme |
 | `/import` | ImportScreen | JSON/YAML-Datei laden und importieren |
@@ -603,8 +625,8 @@ flutter:
 
 1. Nutzer wählt Datei über `file_picker` (JSON oder YAML) **oder** fügt Text aus der Zwischenablage ein (`parseAutoDetect()` erkennt Format automatisch).
 2. `import_parser.dart` liest und validiert das Schema.
-3. Vorschau: Liste der Fragen, Kategorie, Anzahl – Nutzer bestätigt.
-4. Fragen werden in `Questions`-Tabelle geschrieben, Batch in `ImportBatches` protokolliert.
+3. Vorschau: Liste der Fragen, Kategorie, Anzahl, Anzahl mit eingebetteter Schätzung – Nutzer bestätigt.
+4. Fragen werden in `Questions`-Tabelle geschrieben; enthält eine Frage Schätzfelder (`hasEstimateData == true`), wird sofort eine `Estimate` gespeichert. Batch in `ImportBatches` protokolliert.
 5. Bei Duplikaten (identischer Text): überspringen oder ersetzen – konfigurierbar.
 
 Fehler bei ungültigem Schema → Fehlermeldung mit Zeilennummer, kein partieller Import.
@@ -653,7 +675,7 @@ aufgelöste Schätzungen – das spricht klar für SQL.
 
 ---
 
-## Beispiel: Epistemisches Quiz (Import)
+## Beispiel: Epistemisches Quiz (Import mit Schätzung)
 
 ```json
 {
@@ -664,12 +686,14 @@ aufgelöste Schätzungen – das spricht klar für SQL.
     {
       "text": "Liegt Santiago de Chile östlich von New York?",
       "tags": ["geography"],
-      "answer": true
+      "answer": true,
+      "probability": 0.35
     },
     {
       "text": "Hat Australien mehr Schafe als Einwohner?",
       "tags": ["geography", "animals"],
-      "answer": true
+      "answer": true,
+      "probability": 0.7
     },
     {
       "text": "Ist der Nil länger als der Amazonas?",
@@ -682,17 +706,26 @@ aufgelöste Schätzungen – das spricht klar für SQL.
 
 ---
 
-## Beispiel: Aleatorische Prognosen (Import)
+## Beispiel: Aleatorische Prognosen (Import mit Schätzung)
 
 ```yaml
 version: 1
 category: aleatory
-source: Börsenwetten Q1 2026
+source: Alltagsprognosen
 questions:
+  - text: Wird es morgen regnen?
+    tags: [weather, daily]
+    predictionType: binary
+    binaryChoice: true
+    confidenceLevel: 0.65
+  - text: Wie viele Kilometer werde ich im März laufen?
+    tags: [health, sport]
+    predictionType: interval
+    lowerBound: 20
+    upperBound: 45
+    confidenceLevel: 0.8
+    unit: km
   - text: Schließt der DAX am 31.03.2026 über 21000 Punkten?
     tags: [finance, dax]
     deadline: "2026-03-31"
-  - text: Gewinnt Bayern München die Bundesliga 2025/26?
-    tags: [sport, football]
-    deadline: "2026-05-31"
 ```
