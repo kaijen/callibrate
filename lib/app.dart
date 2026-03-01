@@ -20,10 +20,10 @@ final _router = GoRouter(
       path: '/predictions',
       builder: (_, state) {
         final filter = switch (state.uri.queryParameters['filter']) {
-          'pending' => _FilterTab.pending,
-          'needsResolution' => _FilterTab.needsResolution,
-          'resolved' => _FilterTab.resolved,
-          _ => _FilterTab.all,
+          'pending' => FilterTab.pending,
+          'needsResolution' => FilterTab.needsResolution,
+          'resolved' => FilterTab.resolved,
+          _ => FilterTab.all,
         };
         return PredictionsScreen(initialFilter: filter);
       },
