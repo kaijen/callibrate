@@ -111,21 +111,26 @@ class HomeScreen extends ConsumerWidget {
                     label: 'Offen',
                     value: '$pending',
                     color: Colors.orange,
-                    icon: Icons.pending)),
+                    icon: Icons.pending,
+                    onTap: () => context.push('/predictions?filter=pending'))),
             const SizedBox(width: 8),
             Expanded(
                 child: _StatCard(
                     label: 'Ausstehend',
                     value: '$needsResolution',
                     color: Colors.blue,
-                    icon: Icons.hourglass_empty)),
+                    icon: Icons.hourglass_empty,
+                    onTap: () => context
+                        .push('/predictions?filter=needsResolution'))),
             const SizedBox(width: 8),
             Expanded(
                 child: _StatCard(
                     label: 'Aufgelöst',
                     value: '$resolved',
                     color: Colors.green,
-                    icon: Icons.check_circle)),
+                    icon: Icons.check_circle,
+                    onTap: () =>
+                        context.push('/predictions?filter=resolved'))),
           ],
         ),
         if (stats != null) ...[
@@ -189,29 +194,36 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
   final IconData icon;
+  final VoidCallback? onTap;
 
-  const _StatCard(
-      {required this.label,
-      required this.value,
-      required this.color,
-      required this.icon});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 4),
-            Text(value,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(height: 4),
+              Text(value,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
         ),
       ),
     );

@@ -5,10 +5,15 @@ import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
 import 'prediction_card.dart';
 
-enum _FilterTab { all, pending, needsResolution, resolved }
+enum FilterTab { all, pending, needsResolution, resolved }
 
 class PredictionsScreen extends ConsumerStatefulWidget {
-  const PredictionsScreen({super.key});
+  final FilterTab initialFilter;
+
+  const PredictionsScreen({
+    super.key,
+    this.initialFilter = FilterTab.all,
+  });
 
   @override
   ConsumerState<PredictionsScreen> createState() => _PredictionsScreenState();
@@ -22,7 +27,11 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialFilter.index,
+    );
   }
 
   @override
@@ -77,22 +86,22 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
                   children: [
                     _PredictionList(
                       predictions: predictions,
-                      filter: _FilterTab.all,
+                      filter: FilterTab.all,
                       selectedTags: _selectedTags,
                     ),
                     _PredictionList(
                       predictions: predictions,
-                      filter: _FilterTab.pending,
+                      filter: FilterTab.pending,
                       selectedTags: _selectedTags,
                     ),
                     _PredictionList(
                       predictions: predictions,
-                      filter: _FilterTab.needsResolution,
+                      filter: FilterTab.needsResolution,
                       selectedTags: _selectedTags,
                     ),
                     _PredictionList(
                       predictions: predictions,
-                      filter: _FilterTab.resolved,
+                      filter: FilterTab.resolved,
                       selectedTags: _selectedTags,
                     ),
                   ],
@@ -136,7 +145,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
 
 class _PredictionList extends StatelessWidget {
   final List<PredictionView> predictions;
-  final _FilterTab filter;
+  final FilterTab filter;
   final Set<String> selectedTags;
 
   const _PredictionList({
@@ -147,13 +156,13 @@ class _PredictionList extends StatelessWidget {
 
   List<PredictionView> get _filtered {
     var list = switch (filter) {
-      _FilterTab.all => predictions,
-      _FilterTab.pending =>
+      FilterTab.all => predictions,
+      FilterTab.pending =>
         predictions.where((p) => p.status == PredictionStatus.pending).toList(),
-      _FilterTab.needsResolution => predictions
+      FilterTab.needsResolution => predictions
           .where((p) => p.status == PredictionStatus.needsResolution)
           .toList(),
-      _FilterTab.resolved => predictions
+      FilterTab.resolved => predictions
           .where((p) => p.status == PredictionStatus.resolved)
           .toList(),
     };

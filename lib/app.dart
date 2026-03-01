@@ -16,7 +16,18 @@ import 'shared/theme/app_theme.dart';
 final _router = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-    GoRoute(path: '/predictions', builder: (_, __) => const PredictionsScreen()),
+    GoRoute(
+      path: '/predictions',
+      builder: (_, state) {
+        final filter = switch (state.uri.queryParameters['filter']) {
+          'pending' => _FilterTab.pending,
+          'needsResolution' => _FilterTab.needsResolution,
+          'resolved' => _FilterTab.resolved,
+          _ => _FilterTab.all,
+        };
+        return PredictionsScreen(initialFilter: filter);
+      },
+    ),
     GoRoute(
       path: '/estimate/:id',
       builder: (_, state) =>
