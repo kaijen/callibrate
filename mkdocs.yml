@@ -33,4 +33,5 @@ nav:
     - Übersicht: import-export/index.md
     - Format-Referenz: import-export/format.md
     - Beispiele: import-export/beispiele.md
+    - Mit LLM erstellen: import-export/llm-prompts.md
   - Statistiken: statistiken.md
