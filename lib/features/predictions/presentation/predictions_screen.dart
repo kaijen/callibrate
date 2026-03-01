@@ -181,7 +181,7 @@ class _PredictionList extends StatelessWidget {
       case PredictionStatus.needsResolution:
         context.push('/resolve/${prediction.question.id}');
       case PredictionStatus.resolved:
-        break;
+        context.push('/prediction/${prediction.question.id}');
     }
   }
 
