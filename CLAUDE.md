@@ -645,8 +645,49 @@ Fehler bei ungültigem Schema → Fehlermeldung mit Zeilennummer, kein partielle
 | `just lint` | Analyse |
 | `just apk` | Debug-APK bauen |
 | `just release` | Release-APK bauen |
+| `just docs` | Docs lokal vorschauen (http://127.0.0.1:8000) |
+| `just docs-build` | Statische Docs nach `site/` bauen |
 
 Verteilung: APK-Datei direkt; kein Play Store geplant.
+
+---
+
+## Benutzerdokumentation
+
+**Tool:** MkDocs + Material for MkDocs + mike (Versionierung)
+
+**Abhängigkeiten:** `requirements-docs.txt` (`mkdocs-material>=9.5`, `mike>=2.0`)
+
+### Struktur der `docs/`-Seiten
+
+| Datei | Inhalt |
+|-------|--------|
+| `index.md` | Übersicht, Feature-Liste, Kategorientabelle |
+| `erste-schritte.md` | APK-Installation, erster Import-Flow |
+| `vorhersagen/index.md` | Erfassen → Schätzen → Auflösen (Ablauf) |
+| `vorhersagen/typen.md` | `probability`, `binary`, `interval` |
+| `vorhersagen/detail-ansicht.md` | Detail-Ansicht aufgelöster Vorhersagen (ab v0.6.0) |
+| `kategorien.md` | `epistemic` vs. `aleatory` |
+| `import-export/index.md` | Import- und Export-Workflow |
+| `import-export/format.md` | Vollständige Feld-Referenz |
+| `import-export/beispiele.md` | JSON- und YAML-Beispiele |
+| `statistiken.md` | Brier Score, Log Loss, Kalibrierungskurve |
+
+### Deployment
+
+Trigger: Push eines `v*`-Tags → `.github/workflows/docs.yml` läuft parallel zu `release.yml`.
+
+Ablauf:
+1. Python 3.12 + `requirements-docs.txt` installieren
+2. `mike deploy --push --update-aliases <VERSION> latest`
+3. `mike set-default --push latest`
+
+URL-Schema: `https://kaijen.github.io/calibrate/`
+
+### Einmalige Einrichtung
+
+GitHub Pages muss einmalig manuell aktiviert werden:
+**Settings → Pages → Source: Deploy from branch → `gh-pages` / `/ (root)`**
 
 ---
 

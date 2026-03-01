@@ -27,3 +27,18 @@ install:
 clean:
     flutter clean
     dart run build_runner clean
+
+# Release-Tag setzen und pushen (löst CI-Release-Workflow aus)
+tag version:
+    git tag {{version}}
+    git push --tags
+
+# Docs lokal vorschauen (http://127.0.0.1:8000)
+docs:
+    pip install -r requirements-docs.txt
+    mkdocs serve
+
+# Statische Docs nach site/ bauen
+docs-build:
+    pip install -r requirements-docs.txt
+    mkdocs build

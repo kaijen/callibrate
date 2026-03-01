@@ -1,0 +1,36 @@
+site_name: Calibrate
+site_description: Kalibriere deine Wahrscheinlichkeitsschätzungen
+site_url: https://kaijen.github.io/calibrate/
+repo_url: https://github.com/kaijen/calibrate
+repo_name: kaijen/calibrate
+
+theme:
+  name: material
+  language: de
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+    - search.highlight
+
+extra:
+  version:
+    provider: mike
+
+plugins:
+  - search:
+      lang: de
+
+nav:
+  - Übersicht: index.md
+  - Erste Schritte: erste-schritte.md
+  - Vorhersagen:
+    - Übersicht: vorhersagen/index.md
+    - Typen: vorhersagen/typen.md
+    - Detail-Ansicht: vorhersagen/detail-ansicht.md
+  - Kategorien: kategorien.md
+  - Import & Export:
+    - Übersicht: import-export/index.md
+    - Format-Referenz: import-export/format.md
+    - Beispiele: import-export/beispiele.md
+  - Statistiken: statistiken.md
