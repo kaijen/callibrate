@@ -54,6 +54,33 @@ class ImportParser {
     return _parseMap(data);
   }
 
+  /// Erkennt das Format automatisch – zuerst JSON, dann YAML.
+  static ImportFile parseAutoDetect(String content) {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) {
+      throw const ImportParseException('Inhalt ist leer.');
+    }
+
+    if (trimmed.startsWith('{')) {
+      try {
+        final data = jsonDecode(trimmed) as Map<String, dynamic>;
+        return _parseMap(data);
+      } on FormatException catch (e) {
+        throw ImportParseException('Ungültiges JSON: ${e.message}');
+      }
+    }
+
+    try {
+      final yaml = loadYaml(trimmed);
+      final data = _yamlToMap(yaml);
+      return _parseMap(data);
+    } on ImportParseException {
+      rethrow;
+    } catch (e) {
+      throw ImportParseException('Inhalt konnte nicht als JSON oder YAML geparst werden: $e');
+    }
+  }
+
   static ImportFile _parseMap(Map<String, dynamic> data) {
     final version = data['version'];
     if (version == null) {

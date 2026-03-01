@@ -8,6 +8,7 @@ import 'features/resolve/presentation/resolve_screen.dart';
 import 'features/stats/presentation/stats_screen.dart';
 import 'features/import_data/presentation/import_screen.dart';
 import 'features/new_prediction/presentation/new_prediction_screen.dart';
+import 'features/settings/presentation/settings_screen.dart';
 import 'shared/theme/app_theme.dart';
 
 final _router = GoRouter(
@@ -27,6 +28,7 @@ final _router = GoRouter(
     GoRoute(path: '/stats', builder: (_, __) => const StatsScreen()),
     GoRoute(path: '/import', builder: (_, __) => const ImportScreen()),
     GoRoute(path: '/new', builder: (_, __) => const NewPredictionScreen()),
+    GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
   ],
 );
 

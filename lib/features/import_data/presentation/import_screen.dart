@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:drift/drift.dart' as drift;
@@ -97,6 +98,17 @@ class ImportScreen extends ConsumerWidget {
                     : () => _pickFile(context, notifier),
               ),
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.content_paste),
+                label: const Text('Aus Zwischenablage einfügen'),
+                onPressed: importState.importing
+                    ? null
+                    : () => _pasteFromClipboard(context, notifier),
+              ),
+            ),
             if (importState.errorMessage != null) ...[
               const SizedBox(height: 16),
               _ErrorCard(message: importState.errorMessage!),
@@ -141,6 +153,22 @@ class ImportScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _pasteFromClipboard(
+      BuildContext context, _ImportNotifier notifier) async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final content = data?.text;
+    if (content == null || content.trim().isEmpty) {
+      notifier.setError('Zwischenablage ist leer oder enthält keinen Text.');
+      return;
+    }
+    try {
+      final parsed = ImportParser.parseAutoDetect(content);
+      notifier.setParsed(parsed, 'Zwischenablage');
+    } on ImportParseException catch (e) {
+      notifier.setError(e.message);
+    }
   }
 
   Future<void> _pickFile(

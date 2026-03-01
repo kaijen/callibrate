@@ -174,6 +174,11 @@ class HomeScreen extends ConsumerWidget {
           label: 'Neue Vorhersage',
           onTap: () => context.push('/new'),
         ),
+        _NavCard(
+          icon: Icons.settings,
+          label: 'Einstellungen',
+          onTap: () => context.push('/settings'),
+        ),
       ],
     );
   }

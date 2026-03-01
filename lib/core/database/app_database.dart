@@ -178,6 +178,55 @@ class AppDatabase extends _$AppDatabase {
       return true;
     }).toList();
   }
+
+  // --- Reset ---
+
+  Future<void> resetDatabase() async {
+    await transaction(() async {
+      await delete(resolutions).go();
+      await delete(estimates).go();
+      await delete(importBatches).go();
+      await delete(questions).go();
+    });
+  }
+
+  // --- Export ---
+
+  Future<Map<String, dynamic>> exportAll() async {
+    final qs = await getAllQuestions();
+    final result = <Map<String, dynamic>>[];
+    for (final q in qs) {
+      final estimate = await getEstimateForQuestion(q.id);
+      final resolution = await getResolutionForQuestion(q.id);
+      result.add({
+        'id': q.id,
+        'text': q.text,
+        'category': q.category,
+        'tags': jsonDecode(q.tags),
+        'source': q.source,
+        'hasKnownAnswer': q.hasKnownAnswer,
+        'knownAnswer': q.knownAnswer,
+        'deadline': q.deadline?.toIso8601String(),
+        'createdAt': q.createdAt.toIso8601String(),
+        if (estimate != null)
+          'estimate': {
+            'probability': estimate.probability,
+            'createdAt': estimate.createdAt.toIso8601String(),
+          },
+        if (resolution != null)
+          'resolution': {
+            'outcome': resolution.outcome,
+            'notes': resolution.notes,
+            'resolvedAt': resolution.resolvedAt.toIso8601String(),
+          },
+      });
+    }
+    return {
+      'version': 1,
+      'exportedAt': DateTime.now().toIso8601String(),
+      'questions': result,
+    };
+  }
 }
 
 LazyDatabase _openConnection() {

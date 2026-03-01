@@ -17,6 +17,7 @@ class PredictionsScreen extends ConsumerStatefulWidget {
 class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  final Set<String> _selectedTags = {};
 
   @override
   void initState() {
@@ -28,6 +29,20 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _toggleTag(String tag) {
+    setState(() {
+      if (_selectedTags.contains(tag)) {
+        _selectedTags.remove(tag);
+      } else {
+        _selectedTags.add(tag);
+      }
+    });
+  }
+
+  Set<String> _collectTags(List<PredictionView> predictions) {
+    return {for (final p in predictions) ...p.tagList};
   }
 
   @override
@@ -51,27 +66,41 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
       body: predictionsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Fehler: $e')),
-        data: (predictions) => TabBarView(
-          controller: _tabController,
-          children: [
-            _PredictionList(
-              predictions: predictions,
-              filter: _FilterTab.all,
-            ),
-            _PredictionList(
-              predictions: predictions,
-              filter: _FilterTab.pending,
-            ),
-            _PredictionList(
-              predictions: predictions,
-              filter: _FilterTab.needsResolution,
-            ),
-            _PredictionList(
-              predictions: predictions,
-              filter: _FilterTab.resolved,
-            ),
-          ],
-        ),
+        data: (predictions) {
+          final allTags = _collectTags(predictions);
+          return Column(
+            children: [
+              if (allTags.isNotEmpty) _buildTagFilter(allTags),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _PredictionList(
+                      predictions: predictions,
+                      filter: _FilterTab.all,
+                      selectedTags: _selectedTags,
+                    ),
+                    _PredictionList(
+                      predictions: predictions,
+                      filter: _FilterTab.pending,
+                      selectedTags: _selectedTags,
+                    ),
+                    _PredictionList(
+                      predictions: predictions,
+                      filter: _FilterTab.needsResolution,
+                      selectedTags: _selectedTags,
+                    ),
+                    _PredictionList(
+                      predictions: predictions,
+                      filter: _FilterTab.resolved,
+                      selectedTags: _selectedTags,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/new'),
@@ -80,19 +109,44 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
       ),
     );
   }
+
+  Widget _buildTagFilter(Set<String> allTags) {
+    final tags = allTags.toList()..sort();
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        children: [
+          for (final tag in tags)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(tag),
+                selected: _selectedTags.contains(tag),
+                onSelected: (_) => _toggleTag(tag),
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PredictionList extends StatelessWidget {
   final List<PredictionView> predictions;
   final _FilterTab filter;
+  final Set<String> selectedTags;
 
   const _PredictionList({
     required this.predictions,
     required this.filter,
+    required this.selectedTags,
   });
 
   List<PredictionView> get _filtered {
-    return switch (filter) {
+    var list = switch (filter) {
       _FilterTab.all => predictions,
       _FilterTab.pending =>
         predictions.where((p) => p.status == PredictionStatus.pending).toList(),
@@ -103,6 +157,12 @@ class _PredictionList extends StatelessWidget {
           .where((p) => p.status == PredictionStatus.resolved)
           .toList(),
     };
+    if (selectedTags.isNotEmpty) {
+      list = list
+          .where((p) => p.tagList.any(selectedTags.contains))
+          .toList();
+    }
+    return list;
   }
 
   void _handleTap(BuildContext context, PredictionView prediction) {
@@ -112,7 +172,6 @@ class _PredictionList extends StatelessWidget {
       case PredictionStatus.needsResolution:
         context.push('/resolve/${prediction.question.id}');
       case PredictionStatus.resolved:
-        // Show detail or do nothing for resolved
         break;
     }
   }
