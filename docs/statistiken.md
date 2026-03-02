@@ -48,8 +48,10 @@ Abweichungen nach oben bedeuten Unterschätzung (zu bescheiden), nach unten Übe
 | Diagramm | Inhalt |
 |----------|--------|
 | Kalibrierungskurve | Bin-Mitte vs. Trefferquote, Diagonale als Referenz |
-| Häufigkeitshistogramm | Wie oft welche Wahrscheinlichkeit vergeben wurde |
-| Brier/Log-Loss-Verlauf | Rollender Durchschnitt über Zeit |
+| Brier-Score-Verlauf | Kumulativer Durchschnitt nach jeder Schätzung |
+| Log-Loss-Verlauf | Kumulativer Durchschnitt nach jeder Schätzung |
+
+Die Verlaufsdiagramme zeigen, wie sich Brier Score und Log Loss mit jeder weiteren aufgelösten Schätzung entwickeln. Die gestrichelte Linie markiert das Münzwurf-Niveau (0,25 bzw. ≈ 0,69). Mit dem Selektor oben rechts lässt sich der sichtbare Ausschnitt auf die letzten 25, 50 oder 100 Schätzungen einschränken.
 
 Die Statistiken lassen sich mit drei kombinierbaren Filtern eingrenzen:
 

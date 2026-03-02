@@ -1,5 +1,17 @@
 import 'dart:math';
 
+class ScorePoint {
+  final int index;         // 1-basierte Schätzungsnummer (chronologisch)
+  final double brierScore; // kumulativer Durchschnitt bis zu diesem Punkt
+  final double logLoss;    // kumulativer Durchschnitt bis zu diesem Punkt
+
+  const ScorePoint({
+    required this.index,
+    required this.brierScore,
+    required this.logLoss,
+  });
+}
+
 class CalibrationBin {
   final double binCenter; // e.g. 0.05 for the 0–10% bin
   final int count;
@@ -76,5 +88,27 @@ class CalibrationStats {
       totalCount: n,
       bins: bins,
     );
+  }
+
+  /// Berechnet den kumulativen Brier Score und Log Loss nach jeder Schätzung.
+  /// Die Reihenfolge der [pairs] bestimmt die X-Achse (Schätzung 1, 2, 3 …).
+  static List<ScorePoint> computeHistory(
+      List<({double probability, double outcome})> pairs) {
+    if (pairs.isEmpty) return [];
+    final result = <ScorePoint>[];
+    double brierSum = 0;
+    double llSum = 0;
+    for (var i = 0; i < pairs.length; i++) {
+      final p = pairs[i];
+      brierSum += pow(p.probability - p.outcome, 2);
+      final prob = p.probability.clamp(1e-7, 1 - 1e-7);
+      llSum -= p.outcome * log(prob) + (1 - p.outcome) * log(1 - prob);
+      result.add(ScorePoint(
+        index: i + 1,
+        brierScore: brierSum / (i + 1),
+        logLoss: llSum / (i + 1),
+      ));
+    }
+    return result;
   }
 }

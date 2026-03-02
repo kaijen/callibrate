@@ -4,6 +4,7 @@ import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/calibration_math.dart';
 import '../../../shared/widgets/calibration_chart.dart';
+import '../../../shared/widgets/score_history_chart.dart';
 
 class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key});
@@ -245,6 +246,8 @@ class _StatsView extends StatelessWidget {
         Card(child: CalibrationChart(bins: stats.bins)),
         const SizedBox(height: 16),
         if (stats.bins.isNotEmpty) _BinTable(bins: stats.bins),
+        _HistorySection(predictions: predictions),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -354,6 +357,112 @@ class _BinTable extends StatelessWidget {
               .textTheme
               .bodySmall
               ?.copyWith(fontWeight: FontWeight.bold)),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Verlaufsdiagramme
+// ---------------------------------------------------------------------------
+
+class _HistorySection extends StatefulWidget {
+  final List<PredictionView> predictions;
+
+  const _HistorySection({required this.predictions});
+
+  @override
+  State<_HistorySection> createState() => _HistorySectionState();
+}
+
+class _HistorySectionState extends State<_HistorySection> {
+  int _window = 0; // 0 = alle Werte
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...widget.predictions]
+      ..sort((a, b) =>
+          a.resolution!.resolvedAt.compareTo(b.resolution!.resolvedAt));
+
+    final pairs = sorted
+        .map((p) => (
+              probability: p.estimate!.probability,
+              outcome: p.resolution!.outcome ? 1.0 : 0.0,
+            ))
+        .toList();
+
+    var history = CalibrationStats.computeHistory(pairs);
+
+    if (_window > 0 && history.length > _window) {
+      history = history.sublist(history.length - _window);
+    }
+
+    if (history.length < 2) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Text('Verlauf',
+                style: Theme.of(context).textTheme.titleMedium),
+            const Spacer(),
+            _WindowSelector(
+              value: _window,
+              onChanged: (v) => setState(() => _window = v),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Kumulativer Durchschnitt – gestrichelt: Münzwurf-Niveau',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        Text('Brier Score',
+            style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 4),
+        Card(
+          child: ScoreHistoryChart(points: history, isBrier: true),
+        ),
+        const SizedBox(height: 8),
+        Text('Log Loss',
+            style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 4),
+        Card(
+          child: ScoreHistoryChart(points: history, isBrier: false),
+        ),
+      ],
+    );
+  }
+}
+
+class _WindowSelector extends StatelessWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  const _WindowSelector({required this.value, required this.onChanged});
+
+  static const _options = [25, 50, 100, 0];
+  static const _labels = ['25', '50', '100', 'Alle'];
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<int>(
+      segments: List.generate(
+        _options.length,
+        (i) => ButtonSegment(
+          value: _options[i],
+          label: Text(_labels[i]),
+        ),
+      ),
+      selected: {value},
+      onSelectionChanged: (s) => onChanged(s.first),
+      showSelectedIcon: false,
+      style: const ButtonStyle(
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+      ),
     );
   }
 }
