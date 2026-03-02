@@ -209,6 +209,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         data: (predictions) {
           _currentPredictions = predictions;
           final allTags = _collectTags(predictions);
+          _selectedTags.removeWhere((tag) => !allTags.contains(tag));
           return Column(
             children: [
               if (allTags.isNotEmpty) _buildTagFilter(allTags),
