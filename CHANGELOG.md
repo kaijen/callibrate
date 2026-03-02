@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-03-02
+
+### Fixed
+- Import parser now reads `resolution` fields in version 1 files;
+  previously they were silently ignored, preventing auto-resolution (#14)
+
 ## [0.10.0] - 2026-03-02
 
 ### Added
@@ -155,7 +161,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings screen, tag filter, and clipboard import for question sets
 - GitHub Actions release workflow for tag-triggered APK builds
 
-[Unreleased]: https://github.com/kaijen/calibrate/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/kaijen/calibrate/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/kaijen/calibrate/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/kaijen/calibrate/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/kaijen/calibrate/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/kaijen/calibrate/compare/v0.7.1...v0.8.0
