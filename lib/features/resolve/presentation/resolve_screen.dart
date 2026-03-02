@@ -6,6 +6,7 @@ import 'package:drift/drift.dart' as drift;
 import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/calibration_math.dart';
+import '../../../core/utils/format_utils.dart';
 import '../../../shared/widgets/feedback_sheet.dart';
 
 class ResolveScreen extends ConsumerWidget {
@@ -257,7 +258,7 @@ class _EstimateCard extends StatelessWidget {
           final upper = estimate.upperBound;
           final unit = estimate.unit ?? '';
           final unitStr = unit.isNotEmpty ? ' $unit' : '';
-          return '[${lower?.toStringAsFixed(1) ?? '?'} – ${upper?.toStringAsFixed(1) ?? '?'}$unitStr] @ ${(estimate.confidenceLevel * 100).round()} %';
+          return '[${formatNum(lower)} – ${formatNum(upper)}$unitStr] @ ${(estimate.confidenceLevel * 100).round()} %';
         }(),
       _ => '${(estimate.probability * 100).round()} %',
     };
@@ -338,7 +339,7 @@ class _IntervalResolveInput extends StatelessWidget {
         if (lower != null && upper != null) ...[
           const SizedBox(height: 4),
           Text(
-            'Schätzintervall: ${lower.toStringAsFixed(1)} – ${upper.toStringAsFixed(1)}$unitStr',
+            'Schätzintervall: ${formatNum(lower)} – ${formatNum(upper)}$unitStr',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

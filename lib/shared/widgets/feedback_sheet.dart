@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
 import '../../core/utils/calibration_math.dart';
+import '../../core/utils/format_utils.dart';
 
 class CalibrationFeedbackSheet extends StatelessWidget {
   final bool outcome;
@@ -36,8 +37,8 @@ class CalibrationFeedbackSheet extends StatelessWidget {
       'interval' => () {
           final unit = e.unit ?? '';
           final u = unit.isNotEmpty ? ' $unit' : '';
-          return '[${e.lowerBound?.toStringAsFixed(1) ?? '?'} – '
-              '${e.upperBound?.toStringAsFixed(1) ?? '?'}$u] '
+          return '[${formatNum(e.lowerBound)} – '
+              '${formatNum(e.upperBound)}$u] '
               '@ ${(e.confidenceLevel * 100).round()} %';
         }(),
       _ => '${(e.probability * 100).round()} %',
@@ -118,7 +119,11 @@ class CalibrationFeedbackSheet extends StatelessWidget {
                   if (resolution!.numericOutcome != null)
                     FeedbackStatRow(
                       'Messwert',
-                      resolution!.numericOutcome!.toStringAsFixed(2),
+                      () {
+                        final unit = estimate?.unit ?? '';
+                        final u = unit.isNotEmpty ? ' $unit' : '';
+                        return '${formatNum(resolution!.numericOutcome)}$u';
+                      }(),
                     ),
                   if (resolution!.notes != null)
                     Padding(

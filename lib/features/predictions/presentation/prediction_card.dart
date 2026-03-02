@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/utils/format_utils.dart';
 
 class PredictionCard extends StatelessWidget {
   final PredictionView prediction;
@@ -155,7 +156,7 @@ String _estimateLabel(PredictionView prediction) {
         final upper = estimate.upperBound;
         final unit = estimate.unit ?? '';
         final unitStr = unit.isNotEmpty ? ' $unit' : '';
-        return '[${lower?.toStringAsFixed(1) ?? '?'} – ${upper?.toStringAsFixed(1) ?? '?'}$unitStr] @ ${(estimate.confidenceLevel * 100).round()} %';
+        return '[${formatNum(lower)} – ${formatNum(upper)}$unitStr] @ ${(estimate.confidenceLevel * 100).round()} %';
       }(),
     _ => '${(estimate.probability * 100).round()} %',
   };
