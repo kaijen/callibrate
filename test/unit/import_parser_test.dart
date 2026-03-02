@@ -501,6 +501,60 @@ questions:
     });
   });
 
+  group('ImportParser – v1 mit resolution-Feld', () {
+    test('parst plain-Map-Resolution in v1-Datei', () {
+      const content = '''
+{
+  "version": 1,
+  "category": "epistemic",
+  "source": "FC Schalke 04",
+  "questions": [
+    {
+      "text": "In welchem Jahr wurde der FC Schalke 04 gegründet?",
+      "predictionType": "interval",
+      "tags": ["football", "schalke"],
+      "unit": "Jahr",
+      "resolution": {
+        "outcome": true,
+        "numericOutcome": 1904,
+        "notes": "Gegründet am 4. Mai 1904."
+      }
+    }
+  ]
+}
+''';
+      final result = ImportParser.parseAutoDetect(content);
+      final q = result.questions.first;
+      expect(q.hasResolution, isTrue);
+      expect(q.resolution!.outcome, isTrue);
+      expect(q.resolution!.numericOutcome, 1904.0);
+      expect(q.resolution!.notes, 'Gegründet am 4. Mai 1904.');
+    });
+
+    test('v1-Resolution ohne numericOutcome funktioniert', () {
+      const content = '''
+{
+  "version": 1,
+  "category": "epistemic",
+  "questions": [
+    {
+      "text": "Liegt Santiago de Chile östlich von New York?",
+      "resolution": {
+        "outcome": true,
+        "notes": "Santiago liegt auf 70°W."
+      }
+    }
+  ]
+}
+''';
+      final result = ImportParser.parseAutoDetect(content);
+      final q = result.questions.first;
+      expect(q.hasResolution, isTrue);
+      expect(q.resolution!.outcome, isTrue);
+      expect(q.resolution!.numericOutcome, isNull);
+    });
+  });
+
   group('parseAutoDetect – Markdown-Code-Block-Extraktion', () {
     const jsonPayload = '''
 {

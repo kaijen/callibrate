@@ -250,21 +250,19 @@ class ImportParser {
         unit = qMap['unit'] as String?;
       }
 
-      // v2: resolution (plain Map oder obfuskierter String)
+      // Resolution: plain Map (v1 und v2) oder obfuskierter String (v2-Export)
       ImportResolution? importResolution;
-      if (versionInt >= 2) {
-        final rawRes = qMap['resolution'];
-        if (rawRes is String) {
-          try {
-            final resMap = _deobfuscateResolution(rawRes);
-            importResolution = _parseResolutionMap(resMap);
-          } catch (_) {
-            // ungültige Obfuskierung → ignorieren
-          }
-        } else if (rawRes is Map) {
-          importResolution =
-              _parseResolutionMap(Map<String, dynamic>.from(rawRes));
+      final rawRes = qMap['resolution'];
+      if (rawRes is String && versionInt >= 2) {
+        try {
+          final resMap = _deobfuscateResolution(rawRes);
+          importResolution = _parseResolutionMap(resMap);
+        } catch (_) {
+          // ungültige Obfuskierung → ignorieren
         }
+      } else if (rawRes is Map) {
+        importResolution =
+            _parseResolutionMap(Map<String, dynamic>.from(rawRes));
       }
 
       questions.add(ImportQuestion(
