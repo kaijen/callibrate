@@ -400,7 +400,10 @@ class _TagEditDialogState extends State<_TagEditDialog> {
           child: const Text('Abbrechen'),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(context).pop(_tags),
+          onPressed: () {
+            _addFromController();
+            Navigator.of(context).pop(_tags);
+          },
           child: const Text('Setzen'),
         ),
       ],
