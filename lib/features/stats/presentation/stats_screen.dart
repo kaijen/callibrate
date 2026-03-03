@@ -244,13 +244,20 @@ class _StatsView extends StatelessWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () => _openChartFullscreen(
-            context,
-            'Kalibrierungskurve',
-            CalibrationChart(bins: stats.bins, expand: true),
-          ),
-          child: Card(child: CalibrationChart(bins: stats.bins)),
+        Stack(
+          children: [
+            Card(child: CalibrationChart(bins: stats.bins)),
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => _openChartFullscreen(
+                  context,
+                  'Kalibrierungskurve',
+                  CalibrationChart(bins: stats.bins, expand: true),
+                ),
+                behavior: HitTestBehavior.opaque,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         if (stats.bins.isNotEmpty) _BinTable(bins: stats.bins),
@@ -430,29 +437,39 @@ class _HistorySectionState extends State<_HistorySection> {
         Text('Brier Score',
             style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 4),
-        GestureDetector(
-          onTap: () => _openChartFullscreen(
-            context,
-            'Brier Score – Verlauf',
-            ScoreHistoryChart(points: history, isBrier: true, expand: true),
-          ),
-          child: Card(
-            child: ScoreHistoryChart(points: history, isBrier: true),
-          ),
+        Stack(
+          children: [
+            Card(child: ScoreHistoryChart(points: history, isBrier: true)),
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => _openChartFullscreen(
+                  context,
+                  'Brier Score – Verlauf',
+                  ScoreHistoryChart(points: history, isBrier: true, expand: true),
+                ),
+                behavior: HitTestBehavior.opaque,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Text('Log Loss',
             style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 4),
-        GestureDetector(
-          onTap: () => _openChartFullscreen(
-            context,
-            'Log Loss – Verlauf',
-            ScoreHistoryChart(points: history, isBrier: false, expand: true),
-          ),
-          child: Card(
-            child: ScoreHistoryChart(points: history, isBrier: false),
-          ),
+        Stack(
+          children: [
+            Card(child: ScoreHistoryChart(points: history, isBrier: false)),
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => _openChartFullscreen(
+                  context,
+                  'Log Loss – Verlauf',
+                  ScoreHistoryChart(points: history, isBrier: false, expand: true),
+                ),
+                behavior: HitTestBehavior.opaque,
+              ),
+            ),
+          ],
         ),
       ],
     );
