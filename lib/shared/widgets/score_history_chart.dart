@@ -8,11 +8,13 @@ class ScoreHistoryChart extends StatelessWidget {
 
   /// true = Brier Score, false = Log Loss
   final bool isBrier;
+  final bool expand;
 
   const ScoreHistoryChart({
     super.key,
     required this.points,
     required this.isBrier,
+    this.expand = false,
   });
 
   @override
@@ -57,11 +59,9 @@ class ScoreHistoryChart extends StatelessWidget {
 
     final lineColor = isBrier ? cs.primary : cs.secondary;
 
-    return AspectRatio(
-      aspectRatio: 2.5,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 12, 16, 4),
-        child: LineChart(
+    final chart = Padding(
+      padding: const EdgeInsets.fromLTRB(4, 12, 16, 4),
+      child: LineChart(
           LineChartData(
             minX: xMin,
             maxX: xMax,
@@ -150,7 +150,7 @@ class ScoreHistoryChart extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
+    return expand ? chart : AspectRatio(aspectRatio: 2.5, child: chart);
   }
 }

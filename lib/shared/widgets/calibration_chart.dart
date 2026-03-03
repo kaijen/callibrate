@@ -4,8 +4,9 @@ import '../../core/utils/calibration_math.dart';
 
 class CalibrationChart extends StatelessWidget {
   final List<CalibrationBin> bins;
+  final bool expand;
 
-  const CalibrationChart({super.key, required this.bins});
+  const CalibrationChart({super.key, required this.bins, this.expand = false});
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +21,9 @@ class CalibrationChart extends StatelessWidget {
     // Actual data spots
     final dataSpots = bins.map((b) => FlSpot(b.binCenter, b.hitRate)).toList();
 
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: LineChart(
+    final chart = Padding(
+      padding: const EdgeInsets.all(16),
+      child: LineChart(
           LineChartData(
             minX: 0,
             maxX: 1,
@@ -109,7 +108,7 @@ class CalibrationChart extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
+    return expand ? chart : AspectRatio(aspectRatio: 1, child: chart);
   }
 }

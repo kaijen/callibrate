@@ -53,6 +53,8 @@ Abweichungen nach oben bedeuten Unterschätzung (zu bescheiden), nach unten Übe
 
 Die Verlaufsdiagramme zeigen, wie sich Brier Score und Log Loss mit jeder weiteren aufgelösten Schätzung entwickeln. Die gestrichelte Linie markiert das Münzwurf-Niveau (0,25 bzw. ≈ 0,69). Mit dem Selektor oben rechts lässt sich der sichtbare Ausschnitt auf die letzten 25, 50 oder 100 Schätzungen einschränken.
 
+Ein Tipp auf ein Diagramm öffnet es als Vollbild-Ansicht im Querformat.
+
 Die Statistiken lassen sich mit drei kombinierbaren Filtern eingrenzen:
 
 | Filter | Optionen |

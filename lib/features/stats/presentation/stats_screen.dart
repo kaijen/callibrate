@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
@@ -243,7 +244,14 @@ class _StatsView extends StatelessWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
-        Card(child: CalibrationChart(bins: stats.bins)),
+        GestureDetector(
+          onTap: () => _openChartFullscreen(
+            context,
+            'Kalibrierungskurve',
+            CalibrationChart(bins: stats.bins, expand: true),
+          ),
+          child: Card(child: CalibrationChart(bins: stats.bins)),
+        ),
         const SizedBox(height: 16),
         if (stats.bins.isNotEmpty) _BinTable(bins: stats.bins),
         _HistorySection(predictions: predictions),
@@ -422,17 +430,89 @@ class _HistorySectionState extends State<_HistorySection> {
         Text('Brier Score',
             style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 4),
-        Card(
-          child: ScoreHistoryChart(points: history, isBrier: true),
+        GestureDetector(
+          onTap: () => _openChartFullscreen(
+            context,
+            'Brier Score – Verlauf',
+            ScoreHistoryChart(points: history, isBrier: true, expand: true),
+          ),
+          child: Card(
+            child: ScoreHistoryChart(points: history, isBrier: true),
+          ),
         ),
         const SizedBox(height: 8),
         Text('Log Loss',
             style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 4),
-        Card(
-          child: ScoreHistoryChart(points: history, isBrier: false),
+        GestureDetector(
+          onTap: () => _openChartFullscreen(
+            context,
+            'Log Loss – Verlauf',
+            ScoreHistoryChart(points: history, isBrier: false, expand: true),
+          ),
+          child: Card(
+            child: ScoreHistoryChart(points: history, isBrier: false),
+          ),
         ),
       ],
+    );
+  }
+}
+
+void _openChartFullscreen(
+    BuildContext context, String title, Widget chart) {
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+  showDialog<void>(
+    context: context,
+    useSafeArea: false,
+    barrierDismissible: true,
+    builder: (_) => _FullscreenChartDialog(title: title, chart: chart),
+  ).whenComplete(() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  });
+}
+
+class _FullscreenChartDialog extends StatelessWidget {
+  final String title;
+  final Widget chart;
+
+  const _FullscreenChartDialog({required this.title, required this.chart});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            Expanded(child: chart),
+          ],
+        ),
+      ),
     );
   }
 }
