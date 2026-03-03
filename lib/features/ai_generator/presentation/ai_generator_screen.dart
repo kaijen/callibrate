@@ -564,7 +564,7 @@ class _TemplateSelector extends ConsumerWidget {
               ),
             ],
           ),
-          if (selectedTemplate != null && !selectedTemplate!.isDefault)
+          if (selectedTemplate != null)
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(

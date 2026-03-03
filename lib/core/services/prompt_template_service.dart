@@ -38,6 +38,7 @@ class PromptTemplate {
 
 class PromptTemplateService {
   static const _prefsKey = 'prompt_templates_v1';
+  static const _hiddenDefaultsKey = 'prompt_templates_hidden_v1';
 
   static const List<PromptTemplate> defaults = [
     PromptTemplate(
@@ -149,10 +150,11 @@ Ausgabe ausschließlich als valides JSON.
     ),
   ];
 
-  /// Returns all templates: defaults first, then user-created ones.
+  /// Returns all templates: visible defaults first, then user-created ones.
   static Future<List<PromptTemplate>> loadAll() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_prefsKey);
+    final hidden = prefs.getStringList(_hiddenDefaultsKey)?.toSet() ?? {};
 
     List<PromptTemplate> userTemplates = [];
     if (raw != null) {
@@ -167,7 +169,8 @@ Ausgabe ausschließlich als valides JSON.
       }
     }
 
-    return [...defaults, ...userTemplates];
+    final visibleDefaults = defaults.where((t) => !hidden.contains(t.id));
+    return [...visibleDefaults, ...userTemplates];
   }
 
   /// Creates or updates a template. Default templates cannot be modified.
@@ -183,11 +186,19 @@ Ausgabe ausschließlich als valides JSON.
     await _persist(all);
   }
 
-  /// Deletes a user template by id. No-op for default templates.
+  /// Deletes a template by id.
+  /// Default templates are hidden via a suppression list; user templates are
+  /// removed from persistent storage.
   static Future<void> delete(String id) async {
+    final isDefault = defaults.any((t) => t.id == id);
+    if (isDefault) {
+      final prefs = await SharedPreferences.getInstance();
+      final hidden = prefs.getStringList(_hiddenDefaultsKey)?.toSet() ?? {};
+      hidden.add(id);
+      await prefs.setStringList(_hiddenDefaultsKey, hidden.toList());
+      return;
+    }
     final all = await loadAll();
-    final template = all.where((t) => t.id == id).firstOrNull;
-    if (template == null || template.isDefault) return;
     final updated = all.where((t) => t.id != id).toList();
     await _persist(updated);
   }

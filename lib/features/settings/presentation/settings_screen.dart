@@ -544,17 +544,16 @@ class _TemplateManagerDialogState extends State<_TemplateManagerDialog> {
                       }
                     },
                   ),
-                  if (!t.isDefault)
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      color: Theme.of(context).colorScheme.error,
-                      onPressed: () async {
-                        await PromptTemplateService.delete(t.id);
-                        final updated =
-                            await PromptTemplateService.loadAll();
-                        setState(() => _templates = updated);
-                      },
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    color: Theme.of(context).colorScheme.error,
+                    onPressed: () async {
+                      await PromptTemplateService.delete(t.id);
+                      final updated =
+                          await PromptTemplateService.loadAll();
+                      setState(() => _templates = updated);
+                    },
+                  ),
                 ],
               ),
             );
