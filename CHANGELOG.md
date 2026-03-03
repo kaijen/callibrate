@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.2] - 2026-03-03
+
+### Fixed
+- "Select all" button now toggles: first tap selects all visible predictions
+  in the active tab, second tap deselects all (#29)
+- Button icon and tooltip reflect current state (`select_all` ↔ `deselect`)
+
 ## [0.18.1] - 2026-03-03
 
 ### Changed
@@ -332,7 +339,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings screen, tag filter, and clipboard import for question sets
 - GitHub Actions release workflow for tag-triggered APK builds
 
-[Unreleased]: https://github.com/kaijen/kailibrate/compare/v0.18.1...HEAD
+[Unreleased]: https://github.com/kaijen/kailibrate/compare/v0.18.2...HEAD
+[0.18.2]: https://github.com/kaijen/kailibrate/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/kaijen/kailibrate/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/kaijen/kailibrate/compare/v0.17.4...v0.18.0
 [0.17.4]: https://github.com/kaijen/kailibrate/compare/v0.17.3...v0.17.4
