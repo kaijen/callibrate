@@ -70,10 +70,24 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
 
   void _clearSelection() => setState(() => _selectedIds.clear());
 
-  void _selectAll() {
+  bool get _allVisibleSelected {
     final tab = FilterTab.values[_tabController.index];
     final filtered = _filteredForTab(_currentPredictions, tab);
-    setState(() => _selectedIds.addAll(filtered.map((p) => p.question.id)));
+    if (filtered.isEmpty) return false;
+    return filtered.every((p) => _selectedIds.contains(p.question.id));
+  }
+
+  void _toggleSelectAll() {
+    final tab = FilterTab.values[_tabController.index];
+    final filtered = _filteredForTab(_currentPredictions, tab);
+    final allIds = filtered.map((p) => p.question.id);
+    setState(() {
+      if (_allVisibleSelected) {
+        _selectedIds.removeAll(allIds);
+      } else {
+        _selectedIds.addAll(allIds);
+      }
+    });
   }
 
   List<PredictionView> _filteredForTab(
@@ -176,9 +190,13 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         actions: _isSelecting
             ? [
                 IconButton(
-                  icon: const Icon(Icons.select_all),
-                  tooltip: 'Alle auswählen',
-                  onPressed: _selectAll,
+                  icon: Icon(_allVisibleSelected
+                      ? Icons.deselect
+                      : Icons.select_all),
+                  tooltip: _allVisibleSelected
+                      ? 'Alle abwählen'
+                      : 'Alle auswählen',
+                  onPressed: _toggleSelectAll,
                 ),
                 IconButton(
                   icon: const Icon(Icons.label_outline),
