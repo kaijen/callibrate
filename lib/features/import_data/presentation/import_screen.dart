@@ -249,17 +249,15 @@ class ImportScreen extends ConsumerWidget {
             drift.Value<String?> unit = const drift.Value(null);
             final cl = q.confidenceLevel ?? 0.9;
 
-            if (q.predictionType == 'binary') {
-              probability =
-                  q.binaryChoice! ? cl : 1.0 - cl;
+            if (q.predictionType == 'binary' || q.predictionType == 'factual') {
+              probability = q.binaryChoice! ? cl : 1.0 - cl;
               binaryChoice = drift.Value(q.binaryChoice);
-            } else if (q.predictionType == 'interval') {
+            } else {
+              // interval
               probability = cl;
               lowerBound = drift.Value(q.lowerBound);
               upperBound = drift.Value(q.upperBound);
               if (q.unit != null) unit = drift.Value(q.unit);
-            } else {
-              probability = q.probability!;
             }
 
             await db.upsertEstimate(

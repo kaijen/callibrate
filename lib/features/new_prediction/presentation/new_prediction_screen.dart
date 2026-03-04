@@ -7,7 +7,6 @@ import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../shared/widgets/estimate_inputs.dart';
-import '../../../shared/widgets/probability_slider.dart';
 
 final _newEstimateProvider =
     StateNotifierProvider.autoDispose<EstimateFormNotifier, EstimateFormState>(
@@ -28,7 +27,7 @@ class _NewPredictionScreenState extends ConsumerState<NewPredictionScreen> {
   final _unitController = TextEditingController();
 
   String _category = 'epistemic';
-  String _predictionType = 'probability';
+  String _predictionType = 'factual';
   DateTime? _deadline;
   bool _saving = false;
   bool _estimateEnabled = false;
@@ -225,11 +224,6 @@ class _NewPredictionScreenState extends ConsumerState<NewPredictionScreen> {
             const SizedBox(height: 8),
             SegmentedButton<String>(
               segments: [
-                const ButtonSegment(
-                  value: 'probability',
-                  label: Text('Wahrsch.'),
-                  icon: Icon(Icons.percent),
-                ),
                 if (_category == 'epistemic')
                   const ButtonSegment(
                     value: 'factual',
@@ -288,10 +282,10 @@ class _NewPredictionScreenState extends ConsumerState<NewPredictionScreen> {
               onSelectionChanged: (s) => setState(() {
                 _category = s.first;
                 if (_category == 'aleatory' && _predictionType == 'factual') {
-                  _predictionType = 'probability';
+                  _predictionType = 'binary';
                 } else if (_category == 'epistemic' &&
                     _predictionType == 'binary') {
-                  _predictionType = 'probability';
+                  _predictionType = 'factual';
                 }
               }),
             ),
@@ -368,14 +362,10 @@ class _NewPredictionScreenState extends ConsumerState<NewPredictionScreen> {
                       BinaryEstimateInput(state: state, notifier: notifier),
                     'factual' =>
                       FactualEstimateInput(state: state, notifier: notifier),
-                    'interval' => IntervalEstimateInput(
+                    _ => IntervalEstimateInput(
                         state: state,
                         notifier: notifier,
                         unit: unit.isEmpty ? null : unit,
-                      ),
-                    _ => ProbabilitySlider(
-                        value: state.probability,
-                        onChanged: notifier.setProbability,
                       ),
                   };
                 },
@@ -412,10 +402,8 @@ class _TypeHintCard extends StatelessWidget {
         'Ja/Nein: Wähle JA oder NEIN und gib deine Konfidenz an (z.B. JA mit 80 % → P = 0,80).',
       'factual' =>
         'Wahr/Falsch: Wähle WAHR oder FALSCH und gib deine Überzeugung an. Für epistemische Fragen mit bekannter Antwort.',
-      'interval' =>
-        'Intervall: Gib eine untere und obere Grenze an. Das Ereignis gilt als eingetreten, wenn der tatsächliche Wert im Intervall liegt.',
       _ =>
-        'Wahrscheinlichkeit: Schätze direkt auf einem Slider von 0 bis 100 %.',
+        'Intervall: Gib eine untere und obere Grenze an. Das Ereignis gilt als eingetreten, wenn der tatsächliche Wert im Intervall liegt.',
     };
     return Card(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,

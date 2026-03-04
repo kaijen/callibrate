@@ -20,9 +20,9 @@ class ImportQuestion {
   final bool? answer;
   final DateTime? deadline;
   // Schätzfelder (optional)
-  final String predictionType;   // 'probability' | 'binary' | 'factual' | 'interval'
-  final double? probability;     // für probability-Typ
-  final bool? binaryChoice;      // für binary-Typ
+  final String predictionType;   // 'binary' | 'factual' | 'interval'
+  final double? probability;     // kanonischer Wert aus v2-Exporten (read-only)
+  final bool? binaryChoice;      // für binary/factual-Typ
   final double? confidenceLevel; // für binary + interval
   final double? lowerBound;      // für interval
   final double? upperBound;      // für interval
@@ -35,7 +35,7 @@ class ImportQuestion {
     this.tags = const [],
     this.answer,
     this.deadline,
-    this.predictionType = 'probability',
+    this.predictionType = 'binary',
     this.probability,
     this.binaryChoice,
     this.confidenceLevel,
@@ -48,8 +48,7 @@ class ImportQuestion {
   bool get hasResolution => resolution != null;
 
   bool get hasEstimateData {
-    return (predictionType == 'probability' && probability != null) ||
-        ((predictionType == 'binary' || predictionType == 'factual') &&
+    return ((predictionType == 'binary' || predictionType == 'factual') &&
             binaryChoice != null) ||
         (predictionType == 'interval' &&
             lowerBound != null &&
@@ -207,12 +206,16 @@ class ImportParser {
         deadline = DateTime.tryParse(rawDeadline.toString());
       }
 
-      // Vorhersagetyp – unbekannte Werte fallen auf 'probability' zurück
+      // Vorhersagetyp – 'probability' und unbekannte Werte werden anhand
+      // der Kategorie auf 'binary' (aleatorisch) oder 'factual' (epistemisch) gemappt.
       final rawType = qMap['predictionType'] as String?;
-      final predictionType =
-          {'probability', 'binary', 'factual', 'interval'}.contains(rawType)
-              ? rawType!
-              : 'probability';
+      final String predictionType;
+      if (rawType == 'binary' || rawType == 'factual' || rawType == 'interval') {
+        predictionType = rawType!;
+      } else {
+        final effectiveCat = topLevelCategory ?? (qMap['category'] as String?);
+        predictionType = effectiveCat == 'epistemic' ? 'factual' : 'binary';
+      }
 
       // v2-Export: category pro Frage, answer via hasKnownAnswer+knownAnswer,
       // Schätzfelder im verschachtelten 'estimate'-Objekt

@@ -24,8 +24,8 @@ class CalibrationFeedbackSheet extends StatelessWidget {
 
   static const _typeLabels = {
     'binary': 'Ja/Nein',
+    'factual': 'Wahr/Falsch',
     'interval': 'Intervall',
-    'probability': 'Wahrscheinlichkeit',
   };
 
   String _estimateLabel() {

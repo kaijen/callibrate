@@ -23,8 +23,8 @@ class Questions extends Table {
       dateTime().withDefault(currentDateAndTime)();
   // v2: Vorhersagetyp
   TextColumn get predictionType =>
-      text().withDefault(const Constant('probability'))();
-  // 'probability' | 'binary' | 'factual' | 'interval'
+      text().withDefault(const Constant('binary'))();
+  // 'binary' | 'factual' | 'interval'
   // v3: Einheit für interval-Typ (z. B. "m", "°C")
   TextColumn get unit => text().nullable()();
 }
@@ -107,7 +107,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -129,6 +129,17 @@ class AppDatabase extends _$AppDatabase {
             await m.database.customStatement(
               "UPDATE questions SET prediction_type = 'factual' "
               "WHERE prediction_type = 'binary' AND category = 'epistemic'",
+            );
+          }
+          if (from < 5) {
+            // v5: probability type removed; remap to binary (aleatory) or factual (epistemic).
+            await m.database.customStatement(
+              "UPDATE questions SET prediction_type = 'binary' "
+              "WHERE prediction_type = 'probability' AND category = 'aleatory'",
+            );
+            await m.database.customStatement(
+              "UPDATE questions SET prediction_type = 'factual' "
+              "WHERE prediction_type = 'probability' AND category = 'epistemic'",
             );
           }
         },
@@ -262,8 +273,7 @@ class AppDatabase extends _$AppDatabase {
       result.add({
         'text': q.questionText,
         'category': q.category,
-        if (q.predictionType != 'probability')
-          'predictionType': q.predictionType,
+        'predictionType': q.predictionType,
         'tags': jsonDecode(q.tags),
         if (q.deadline != null) 'deadline': q.deadline!.toIso8601String(),
         'hasKnownAnswer': q.hasKnownAnswer,

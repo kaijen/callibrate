@@ -5,7 +5,6 @@ import 'package:drift/drift.dart' as drift;
 import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/calibration_math.dart';
-import '../../../shared/widgets/probability_slider.dart';
 import '../../../shared/widgets/estimate_inputs.dart';
 import '../../../shared/widgets/feedback_sheet.dart';
 
@@ -120,17 +119,7 @@ class _EstimateBodyState extends ConsumerState<_EstimateBody> {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 32),
-          if (type == 'probability') ...[
-            const Text(
-              'Wie wahrscheinlich ist "Ja"?',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 16),
-            ProbabilitySlider(
-              value: state.probability,
-              onChanged: notifier.setProbability,
-            ),
-          ] else if (type == 'binary') ...[
+          if (type == 'binary') ...[
             BinaryEstimateInput(state: state, notifier: notifier),
           ] else if (type == 'factual') ...[
             FactualEstimateInput(state: state, notifier: notifier),

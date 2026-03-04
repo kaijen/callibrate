@@ -93,8 +93,8 @@ class _FilterPanel extends StatelessWidget {
   });
 
   static const _typeLabels = {
-    'probability': 'Wahrscheinlichkeit',
     'binary': 'Ja/Nein',
+    'factual': 'Wahr/Falsch',
     'interval': 'Intervall',
   };
 

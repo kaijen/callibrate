@@ -8,17 +8,12 @@ const _sentinel = Object();
 // --- State ---
 
 class EstimateFormState {
-  // probability-Typ
-  final double probability;
-  // binary-Typ
   final bool? binaryChoice;
   final double confidenceLevel;
-  // interval-Typ
   final String lowerBoundText;
   final String upperBoundText;
 
   const EstimateFormState({
-    this.probability = 0.5,
     this.binaryChoice,
     this.confidenceLevel = 0.9,
     this.lowerBoundText = '',
@@ -26,14 +21,12 @@ class EstimateFormState {
   });
 
   EstimateFormState copyWith({
-    double? probability,
     Object? binaryChoice = _sentinel,
     double? confidenceLevel,
     String? lowerBoundText,
     String? upperBoundText,
   }) {
     return EstimateFormState(
-      probability: probability ?? this.probability,
       binaryChoice:
           binaryChoice == _sentinel ? this.binaryChoice : binaryChoice as bool?,
       confidenceLevel: confidenceLevel ?? this.confidenceLevel,
@@ -48,7 +41,6 @@ class EstimateFormState {
 class EstimateFormNotifier extends StateNotifier<EstimateFormState> {
   EstimateFormNotifier() : super(const EstimateFormState());
 
-  void setProbability(double v) => state = state.copyWith(probability: v);
   void setBinaryChoice(bool? v) =>
       state = state.copyWith(binaryChoice: v ?? _sentinel);
   void setConfidence(double v) => state = state.copyWith(confidenceLevel: v);
@@ -67,10 +59,8 @@ double computeEstimateProbability(
         ? state.confidenceLevel
         : 1.0 - state.confidenceLevel;
   }
-  if (predictionType == 'interval') {
-    return state.confidenceLevel;
-  }
-  return state.probability;
+  // interval and any unknown type
+  return state.confidenceLevel;
 }
 
 // --- Binary Input ---
