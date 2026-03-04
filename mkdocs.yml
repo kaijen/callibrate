@@ -35,3 +35,4 @@ nav:
     - Beispiele: import-export/beispiele.md
     - Mit LLM erstellen: import-export/llm-prompts.md
   - Statistiken: statistiken.md
+  - Changelog: changelog.md
