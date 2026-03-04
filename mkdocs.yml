@@ -24,15 +24,16 @@ plugins:
 nav:
   - Übersicht: index.md
   - Erste Schritte: erste-schritte.md
+  - Konzepte: konzepte.md
   - Vorhersagen:
-    - Übersicht: vorhersagen/index.md
+    - Workflow: vorhersagen/index.md
     - Typen: vorhersagen/typen.md
     - Detail-Ansicht: vorhersagen/detail-ansicht.md
-  - Kategorien: kategorien.md
+  - KI-Generator: ki-generator.md
   - Import & Export:
     - Übersicht: import-export/index.md
     - Format-Referenz: import-export/format.md
     - Beispiele: import-export/beispiele.md
-    - Mit LLM erstellen: import-export/llm-prompts.md
+    - Manuell mit LLM: import-export/llm-prompts.md
   - Statistiken: statistiken.md
   - Changelog: changelog.md

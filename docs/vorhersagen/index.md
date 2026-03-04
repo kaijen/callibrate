@@ -8,25 +8,32 @@ Eine Vorhersage besteht aus einer Frage und durchläuft drei Schritte: Erfassen,
 Erfassen → Schätzen → Auflösen
 ```
 
-**Erfassen** – Frage formulieren, Kategorie und Typ festlegen. Optional direkt schätzen.
+**Erfassen** – Frage formulieren, Kategorie und Typ festlegen. Optional direkt schätzen und Deadline setzen.
 
-**Schätzen** – Wahrscheinlichkeit eingeben. Je nach Typ: Slider (0–100 %), Ja/Nein mit Konfidenz, oder Intervall mit Konfidenz. Hat die Frage bereits eine Auflösung (z.B. beim Import von Trivia-Katalogen mit eingebetteter Antwort), erscheint nach dem Speichern sofort das Feedback-Sheet.
+**Schätzen** – Wahrscheinlichkeit eingeben. Je nach Typ: Slider (0–100 %), Ja/Nein mit Konfidenz, oder Intervall mit Konfidenz. Hat die Frage bereits eine Auflösung (z. B. beim Import von Trivia-Katalogen mit eingebetteter Antwort), erscheint nach dem Speichern sofort das Feedback-Sheet.
 
-**Auflösen** – Tatsächliches Ergebnis eintragen. Hat die Frage eine bekannte Antwort (z.B. aus einem importierten Trivia-Katalog), zeigt die App diese vor den Auflösen-Buttons an. Die App zeigt danach ein Feedback-Sheet mit dem Brier-Beitrag dieser Schätzung sowie dem aktuellen Brier Score und Log Loss über alle aufgelösten Vorhersagen.
+**Auflösen** – Tatsächliches Ergebnis eintragen. Hat die Frage eine bekannte Antwort (z. B. aus einem importierten Trivia-Katalog), zeigt die App diese vor den Auflösen-Buttons an. Danach erscheint ein Feedback-Sheet mit dem Brier-Beitrag dieser Schätzung sowie dem aktuellen Brier Score und Log Loss über alle aufgelösten Vorhersagen.
+
+---
 
 ## Navigation
 
-| Aktion | Geste |
-|--------|-------|
+Das Antippen einer Vorhersagenkarte öffnet immer die **Detail-Ansicht**. Von dort aus sind alle weiteren Aktionen erreichbar.
+
+| Aktion | Weg |
+|--------|-----|
 | Neue Vorhersage | **+**-Symbol tippen |
-| Schätzen | Offene Karte tippen |
-| Auflösen | Ausstehende Karte tippen |
-| Detail-Ansicht | Aufgelöste Karte tippen |
+| Schätzen | Karte antippen → Detail-Ansicht → **Schätzen**-Button |
+| Auflösen | Karte antippen → Detail-Ansicht → **Auflösen**-Button |
 | Mehrere auswählen | Karte lang drücken |
+
+---
 
 ## Tags
 
-Jede Vorhersage kann beliebig viele Tags tragen. In der Vorhersagenliste filtert ein horizontaler Chip-Streifen nach Tags.
+Jede Vorhersage kann beliebig viele Tags tragen. In der Vorhersagenliste filtert ein horizontaler Chip-Streifen nach Tags. Die Filterung ist OR-verknüpft: Vorhersagen mit mindestens einem der aktiven Tags werden angezeigt.
+
+---
 
 ## Mehrfachauswahl und Tag-Bearbeitung
 
@@ -37,3 +44,16 @@ Durch langes Drücken auf eine Karte wechselt die Liste in den Auswahlmodus. Im 
 - **Tags bearbeiten** (Label-Symbol) öffnet einen Dialog zum Setzen neuer Tags. Die eingegebenen Tags ersetzen die bisherigen Tags aller ausgewählten Vorhersagen. Vorhandene Tags werden als Vorschläge angeboten.
 - **Löschen** (Papierkorb-Symbol) löscht alle ausgewählten Vorhersagen nach einer Bestätigung endgültig – inklusive Schätzungen und Auflösungen.
 - Das **×**-Symbol in der AppBar oder ein Antippen einer nicht ausgewählten Karte hebt die Auswahl auf.
+
+---
+
+## Tabs in der Vorhersagenliste
+
+Die Liste ist in vier Tabs unterteilt:
+
+| Tab | Inhalt |
+|-----|--------|
+| Alle | Alle Vorhersagen |
+| Offen | Noch nicht geschätzte Vorhersagen |
+| Ausstehend | Geschätzte, aber noch nicht aufgelöste Vorhersagen |
+| Aufgelöst | Abgeschlossene Vorhersagen |

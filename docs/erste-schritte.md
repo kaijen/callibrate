@@ -1,38 +1,67 @@
 # Erste Schritte
 
-## APK installieren
+## App installieren
 
-Das aktuelle Release ist auf [GitHub Releases](https://github.com/kaijen/kailibrate/releases) verfügbar. Die APK-Datei herunterladen und auf dem Android-Gerät öffnen. Bei der ersten Installation muss „Installation aus unbekannten Quellen" erlaubt sein.
+Das aktuelle Release ist auf [GitHub Releases](https://github.com/kaijen/kailibrate/releases) verfügbar. APK herunterladen und auf dem Android-Gerät öffnen. Bei der ersten Installation muss „Installation aus unbekannten Quellen" für den Browser oder Dateimanager erlaubt werden.
 
-## Erste Vorhersage erfassen
+---
 
-1. Dashboard öffnen – beim ersten Start ist die Datenbank leer.
-2. Auf das **+**-Symbol tippen.
-3. Frage eingeben, z.B. „Wird es morgen regnen?".
-4. Kategorie wählen: `aleatory` für inhärente Zufälligkeit, `epistemic` für Faktfragen.
-5. Optional: Typ wählen (Wahrscheinlichkeit, Ja/Nein, Intervall) und sofort schätzen.
+## Weg 1 – Fragenkatalog importieren (empfohlen zum Einstieg)
+
+Der schnellste Einstieg: einen fertigen Fragenkatalog importieren und sofort mit dem Schätzen beginnen.
+
+1. Im Menü **Import** wählen.
+2. Eine JSON- oder YAML-Datei auswählen, oder Text direkt aus der Zwischenablage einfügen.
+3. Die Vorschau zeigt Anzahl, Kategorie und ob Schätzungen enthalten sind – dann **Importieren** bestätigen.
+4. Die importierten Fragen erscheinen in der Vorhersagenliste. Offene Fragen warten auf deine Schätzung.
+
+Enthält ein Katalog bereits Auflösungen (versteckte Antworten), erscheint in der Liste „Lösung vorhanden". Du schätzt zuerst – erst danach zeigt die App, ob du recht hattest.
+
+Mehr zum Format: [Import & Export](import-export/index.md)
+
+---
+
+## Weg 2 – Erste Vorhersage manuell erfassen
+
+1. Auf das **+**-Symbol tippen.
+2. Frage eingeben, z. B. „Wird Deutschland die Fußball-WM 2026 gewinnen?"
+3. Kategorie wählen: **Aleatorisch** für Prognosen über zukünftige Ereignisse, **Epistemisch** für Faktfragen.
+4. Vorhersagetyp wählen: Ja/Nein, Wahr/Falsch oder Intervall.
+5. Optional sofort schätzen und Deadline setzen.
 6. Speichern.
+
+---
 
 ## Schätzen und Auflösen
 
-Vorhersagen durchlaufen drei Zustände:
+Jede Vorhersage durchläuft drei Zustände:
 
-| Zustand | Bedeutung |
-|---------|-----------|
-| Offen | Noch keine Schätzung |
-| Ausstehend | Geschätzt, aber noch nicht aufgelöst |
-| Aufgelöst | Ergebnis eingetragen |
+| Zustand | Bedeutung | Nächste Aktion |
+|---------|-----------|----------------|
+| **Offen** | Noch keine Schätzung | Karte antippen → Schätzen |
+| **Ausstehend** | Geschätzt, Ergebnis steht noch aus | Karte antippen → Detail-Ansicht, Auflösen per Button |
+| **Aufgelöst** | Ergebnis eingetragen | Karte antippen → Detail-Ansicht mit Feedback |
 
-Auf eine offene Vorhersage tippen → Schätzscreen. Auf eine ausstehende Vorhersage tippen → Auflösen. Auf eine aufgelöste Vorhersage tippen → Detail-Ansicht.
+Nach dem Auflösen zeigt die App ein Feedback-Sheet mit dem Brier-Beitrag dieser Schätzung und dem aktuellen Gesamtscore.
 
-## Fragenkatalog importieren
+---
 
-Der schnellste Weg zum Ausprobieren: eine Beispieldatei importieren.
+## KI-Generator nutzen
 
-1. Im Menü **Import** wählen.
-2. **Datei wählen** tippen oder Text aus der Zwischenablage einfügen.
-3. Vorschau prüfen, dann **Importieren** bestätigen.
+Der KI-Generator erzeugt automatisch Fragenkataloge zu einem beliebigen Thema.
 
-Die App erkennt JSON und YAML automatisch. Enthält die Datei bereits Schätzungen, werden sie direkt gespeichert. Enthält sie Auflösungen, werden die Fragen sofort als aufgelöst markiert.
+Voraussetzung: ein OpenRouter-API-Key (kostenlos erhältlich unter [openrouter.ai](https://openrouter.ai)), der einmalig in **Einstellungen → API-Key** hinterlegt wird.
 
-Mehr zum Importformat unter [Import & Export](import-export/index.md).
+Dann: Tab **KI-Generator** öffnen, Thema eingeben, Vorlage und Modell wählen, generieren. Die erzeugten Fragen lassen sich direkt importieren.
+
+Details: [KI-Generator](ki-generator.md)
+
+---
+
+## Statistiken lesen
+
+Sobald mindestens eine Vorhersage aufgelöst ist, stehen Statistiken bereit. Den Tab **Statistiken** öffnen – dort stehen Brier Score, Log Loss und die Kalibrierungskurve.
+
+Die Kurve zeigt auf einen Blick, ob du systematisch zu selbstsicher (Punkte unterhalb der Diagonale) oder zu vorsichtig bist (Punkte oberhalb).
+
+Details: [Statistiken](statistiken.md)
