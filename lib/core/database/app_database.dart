@@ -191,6 +191,32 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  /// Rundet alle confidenceLevel-Werte auf den nächsten 5%-Schritt (50–100 %)
+  /// und berechnet probability daraus neu. Einmalige Datenmigration.
+  Future<void> roundAllConfidenceLevels() async {
+    final all = await getAllEstimates();
+    for (final e in all) {
+      final rounded =
+          ((e.confidenceLevel / 0.05).round() * 0.05).clamp(0.5, 1.0);
+      if ((rounded - e.confidenceLevel).abs() < 1e-10) continue;
+
+      final q = await getQuestion(e.questionId);
+      final double newProbability;
+      if (q.predictionType == 'binary' || q.predictionType == 'factual') {
+        newProbability = e.binaryChoice == true ? rounded : 1.0 - rounded;
+      } else {
+        newProbability = rounded;
+      }
+
+      await (update(estimates)..where((est) => est.id.equals(e.id))).write(
+        EstimatesCompanion(
+          confidenceLevel: Value(rounded),
+          probability: Value(newProbability),
+        ),
+      );
+    }
+  }
+
   Future<void> updateDeadline(int id, DateTime? deadline) =>
       (update(questions)..where((q) => q.id.equals(id)))
           .write(QuestionsCompanion(deadline: Value(deadline)));

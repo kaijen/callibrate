@@ -300,7 +300,8 @@ class ConfidenceSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final divisions = ((0.99 - min) * 100).round();
+    const max = 1.0;
+    final divisions = ((max - min) / 0.05).round();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -321,9 +322,9 @@ class ConfidenceSlider extends StatelessWidget {
           ],
         ),
         Slider(
-          value: value.clamp(min, 0.99),
+          value: value.clamp(min, max),
           min: min,
-          max: 0.99,
+          max: max,
           divisions: divisions,
           label: '${(value * 100).round()} %',
           onChanged: onChanged,
