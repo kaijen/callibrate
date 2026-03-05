@@ -24,6 +24,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
   late final TabController _tabController;
   final Set<String> _selectedTags = {};
   final Set<int> _selectedIds = {};
+  bool _sortReversed = false;
 
   // Wird in build() aktualisiert – für Select-All ohne extra State.
   List<PredictionView> _currentPredictions = [];
@@ -93,7 +94,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
   List<PredictionView> _filteredForTab(
       List<PredictionView> predictions, FilterTab tab) {
     var list = switch (tab) {
-      FilterTab.all => predictions,
+      FilterTab.all => predictions.toList(),
       FilterTab.pending =>
         predictions.where((p) => p.status == PredictionStatus.pending).toList(),
       FilterTab.needsResolution => predictions
@@ -105,6 +106,19 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
     };
     if (_selectedTags.isNotEmpty) {
       list = list.where((p) => p.tagList.any(_selectedTags.contains)).toList();
+    }
+    if (tab == FilterTab.resolved) {
+      list.sort((a, b) {
+        final cmp = a.resolution!.resolvedAt
+            .compareTo(b.resolution!.resolvedAt);
+        return _sortReversed ? cmp : -cmp; // default: newest first
+      });
+    } else {
+      list.sort((a, b) {
+        final cmp =
+            a.question.createdAt.compareTo(b.question.createdAt);
+        return _sortReversed ? -cmp : cmp; // default: oldest first
+      });
     }
     return list;
   }
@@ -209,7 +223,16 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
                   onPressed: _deleteSelected,
                 ),
               ]
-            : null,
+            : [
+                IconButton(
+                  icon: Icon(_sortReversed
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward),
+                  tooltip: 'Sortierung umkehren',
+                  onPressed: () =>
+                      setState(() => _sortReversed = !_sortReversed),
+                ),
+              ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,

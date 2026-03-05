@@ -51,9 +51,11 @@ Durch langes Drücken auf eine Karte wechselt die Liste in den Auswahlmodus. Im 
 
 Die Liste ist in vier Tabs unterteilt:
 
-| Tab | Inhalt |
-|-----|--------|
-| Alle | Alle Vorhersagen |
-| Offen | Noch nicht geschätzte Vorhersagen |
-| Ausstehend | Geschätzte, aber noch nicht aufgelöste Vorhersagen |
-| Aufgelöst | Abgeschlossene Vorhersagen |
+| Tab | Inhalt | Standard-Sortierung |
+|-----|--------|---------------------|
+| Alle | Alle Vorhersagen | Erstelldatum aufsteigend |
+| Offen | Noch nicht geschätzte Vorhersagen | Erstelldatum aufsteigend |
+| Ausstehend | Geschätzte, aber noch nicht aufgelöste Vorhersagen | Erstelldatum aufsteigend |
+| Aufgelöst | Abgeschlossene Vorhersagen | Auflösungsdatum absteigend |
+
+Das Pfeil-Symbol in der AppBar kehrt die Sortierung des aktiven Tabs um.
