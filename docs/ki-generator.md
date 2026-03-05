@@ -21,7 +21,7 @@ Der Generator nutzt [OpenRouter](https://openrouter.ai) als Schnittstelle zu ver
 2. **Thema** eingeben, z. B. „Europäische Geschichte", „Bundesliga 2026" oder „Weltraumforschung".
 3. **Anzahl** der Fragen wählen (Standard: 10).
 4. **Vorlage** auswählen – die Vorlage bestimmt, welche Art von Fragen erzeugt wird (siehe unten).
-5. Optional **Tags** eintragen (kommagetrennt). Der Generator verwendet dann ausschließlich diese Tags, was das spätere Filtern in der App erleichtert.
+5. Optional **Tags** vergeben. Vorhandene Tags aus der Datenbank können per Chip-Auswahl übernommen werden; neue Tags lassen sich zusätzlich im Textfeld eingeben. Der Generator verwendet dann ausschließlich diese Tags, was das spätere Filtern in der App erleichtert.
 6. **Modell** wählen. Die Liste zeigt die verfügbaren OpenRouter-Modelle. Das zuletzt genutzte Modell wird beim nächsten Öffnen vorausgewählt.
 7. **Generieren** antippen.
 
