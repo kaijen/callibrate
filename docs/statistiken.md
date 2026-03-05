@@ -41,6 +41,8 @@ Eine perfekt kalibrierte Person liegt auf der Diagonale: Wer 70 % sagt, hat in 7
 
 Abweichungen nach oben zeigen Unterschätzung (zu bescheiden), Abweichungen nach unten Überschätzung (zu selbstsicher).
 
+Die **Punktgröße** zeigt die relative Datenmenge: Der Bin mit den meisten Schätzungen erscheint am größten, alle anderen skalieren proportional dazu.
+
 ---
 
 ## Diagramme in der App

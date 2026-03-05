@@ -20,6 +20,7 @@ class CalibrationChart extends StatelessWidget {
 
     // Actual data spots
     final dataSpots = bins.map((b) => FlSpot(b.binCenter, b.hitRate)).toList();
+    final maxCount = bins.fold(0, (m, b) => b.count > m ? b.count : m);
 
     final chart = Padding(
       padding: const EdgeInsets.all(16),
@@ -95,7 +96,8 @@ class CalibrationChart extends StatelessWidget {
                     getDotPainter: (spot, _, __, ___) {
                       final bin = bins.firstWhere(
                           (b) => (b.binCenter - spot.x).abs() < 0.01);
-                      final radius = (bin.count * 2.0).clamp(4.0, 16.0);
+                      final t = maxCount > 0 ? bin.count / maxCount : 0.0;
+                      final radius = 3.0 + t * 5.0;
                       return FlDotCirclePainter(
                         radius: radius,
                         color: cs.primary,
