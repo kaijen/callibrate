@@ -170,6 +170,16 @@ class AppDatabase extends _$AppDatabase {
       (update(questions)..where((q) => q.id.equals(id)))
           .write(QuestionsCompanion(tags: Value(jsonEncode(tags))));
 
+  Future<void> deleteTagGlobally(String tag) async {
+    final all = await select(questions).get();
+    for (final q in all) {
+      final current = List<String>.from(jsonDecode(q.tags) as List);
+      if (current.contains(tag)) {
+        await updateQuestionTags(q.id, current..remove(tag));
+      }
+    }
+  }
+
   Future<void> updateDeadline(int id, DateTime? deadline) =>
       (update(questions)..where((q) => q.id.equals(id)))
           .write(QuestionsCompanion(deadline: Value(deadline)));

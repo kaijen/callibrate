@@ -233,6 +233,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _showTagManager(BuildContext context) async {
+    final db = ref.read(appDatabaseProvider);
+    final all = await db.getAllPredictionViews();
+    if (!context.mounted) return;
+
+    final tags = {for (final v in all) ...v.tagList}.toList()..sort();
+
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _TagManagerDialog(
+        tags: tags,
+        onDelete: (tag) async {
+          await db.deleteTagGlobally(tag);
+          ref.invalidate(predictionsStreamProvider);
+        },
+      ),
+    );
+  }
+
   Future<void> _showTemplateManager(BuildContext context) async {
     final templates = await PromptTemplateService.loadAll();
     if (!context.mounted) return;
@@ -321,6 +340,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   )
                 : null,
             onTap: _sharingExportLoading ? null : _exportForSharing,
+          ),
+          ListTile(
+            leading: const Icon(Icons.label_outlined),
+            title: const Text('Tags verwalten'),
+            subtitle: const Text('Tags global umbenennen oder löschen'),
+            onTap: () => _showTagManager(context),
           ),
           const Divider(),
           const Padding(
@@ -593,6 +618,97 @@ class _TemplateManagerDialogState extends State<_TemplateManagerDialog> {
           },
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Schließen'),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tag manager dialog
+// ---------------------------------------------------------------------------
+
+class _TagManagerDialog extends StatefulWidget {
+  final List<String> tags;
+  final Future<void> Function(String tag) onDelete;
+
+  const _TagManagerDialog({required this.tags, required this.onDelete});
+
+  @override
+  State<_TagManagerDialog> createState() => _TagManagerDialogState();
+}
+
+class _TagManagerDialogState extends State<_TagManagerDialog> {
+  late List<String> _tags;
+
+  @override
+  void initState() {
+    super.initState();
+    _tags = List.from(widget.tags);
+  }
+
+  Future<void> _confirmDelete(String tag) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Tag löschen'),
+        content: Text(
+          'Der Tag „$tag" wird bei allen Vorhersagen entfernt. '
+          'Diese Aktion kann nicht rückgängig gemacht werden.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await widget.onDelete(tag);
+    setState(() => _tags.remove(tag));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Tags verwalten'),
+      content: _tags.isEmpty
+          ? const Text('Keine Tags vorhanden.')
+          : SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _tags.length,
+                itemBuilder: (ctx, i) {
+                  final tag = _tags[i];
+                  return ListTile(
+                    leading: const Icon(Icons.label_outline),
+                    title: Text(tag),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      color: Theme.of(context).colorScheme.error,
+                      tooltip: 'Tag löschen',
+                      onPressed: () => _confirmDelete(tag),
+                    ),
+                  );
+                },
+              ),
+            ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
