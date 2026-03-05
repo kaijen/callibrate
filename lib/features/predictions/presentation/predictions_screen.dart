@@ -25,6 +25,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
   final Set<String> _selectedTags = {};
   final Set<int> _selectedIds = {};
   bool _sortReversed = false;
+  bool _sortByDeadline = false;
   bool _showOverdueOnly = false;
 
   // Wird in build() aktualisiert – für Select-All ohne extra State.
@@ -40,6 +41,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
       vsync: this,
       initialIndex: widget.initialFilter.index,
     );
+    _tabController.addListener(() => setState(() {}));
   }
 
   @override
@@ -121,6 +123,16 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         final cmp = a.resolution!.resolvedAt
             .compareTo(b.resolution!.resolvedAt);
         return _sortReversed ? cmp : -cmp; // default: newest first
+      });
+    } else if (tab == FilterTab.needsResolution && _sortByDeadline) {
+      list.sort((a, b) {
+        final da = a.question.deadline;
+        final db = b.question.deadline;
+        if (da == null && db == null) return 0;
+        if (da == null) return 1;  // nulls always last
+        if (db == null) return -1;
+        final cmp = da.compareTo(db);
+        return _sortReversed ? -cmp : cmp; // default: earliest deadline first
       });
     } else {
       list.sort((a, b) {
@@ -233,6 +245,20 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
                 ),
               ]
             : [
+                if (_tabController.index == FilterTab.needsResolution.index)
+                  IconButton(
+                    icon: Icon(
+                      _sortByDeadline ? Icons.event : Icons.event_outlined,
+                      color: _sortByDeadline
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    tooltip: _sortByDeadline
+                        ? 'Nach Erstelldatum sortieren'
+                        : 'Nach Fälligkeitsdatum sortieren',
+                    onPressed: () =>
+                        setState(() => _sortByDeadline = !_sortByDeadline),
+                  ),
                 IconButton(
                   icon: Icon(_sortReversed
                       ? Icons.arrow_upward

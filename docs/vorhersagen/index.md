@@ -58,7 +58,7 @@ Die Liste ist in vier Tabs unterteilt:
 |-----|--------|---------------------|
 | Alle | Alle Vorhersagen | Erstelldatum aufsteigend |
 | Offen | Noch nicht geschätzte Vorhersagen | Erstelldatum aufsteigend |
-| Ausstehend | Geschätzte, aber noch nicht aufgelöste Vorhersagen | Erstelldatum aufsteigend |
+| Ausstehend | Geschätzte, aber noch nicht aufgelöste Vorhersagen | Erstelldatum aufsteigend; Kalender-Symbol schaltet auf Fälligkeitsdatum um (Einträge ohne Deadline stets am Ende) |
 | Aufgelöst | Abgeschlossene Vorhersagen | Auflösungsdatum absteigend |
 
 Das Pfeil-Symbol in der AppBar kehrt die Sortierung des aktiven Tabs um.
