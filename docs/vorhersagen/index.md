@@ -25,6 +25,7 @@ Das Antippen einer Vorhersagenkarte öffnet immer die **Detail-Ansicht**. Von do
 | Neue Vorhersage | **+**-Symbol tippen |
 | Schätzen | Karte antippen → Detail-Ansicht → **Schätzen**-Button |
 | Auflösen | Karte antippen → Detail-Ansicht → **Auflösen**-Button |
+| Vorhersage löschen | Auflösungsseite → **Papierkorb-Symbol** (AppBar) |
 | Mehrere auswählen | Karte lang drücken |
 
 ---
@@ -32,6 +33,8 @@ Das Antippen einer Vorhersagenkarte öffnet immer die **Detail-Ansicht**. Von do
 ## Tags
 
 Jede Vorhersage kann beliebig viele Tags tragen. In der Vorhersagenliste filtert ein horizontaler Chip-Streifen nach Tags. Die Filterung ist OR-verknüpft: Vorhersagen mit mindestens einem der aktiven Tags werden angezeigt.
+
+Der Chip **Überfällig** filtert zusätzlich auf Vorhersagen, deren Deadline in der Vergangenheit liegt und die noch nicht aufgelöst sind. Auf der Übersichtsseite werden die Karten „Offen" und „Ausstehend" rot hervorgehoben, sobald überfällige Einträge existieren.
 
 ---
 
@@ -51,9 +54,11 @@ Durch langes Drücken auf eine Karte wechselt die Liste in den Auswahlmodus. Im 
 
 Die Liste ist in vier Tabs unterteilt:
 
-| Tab | Inhalt |
-|-----|--------|
-| Alle | Alle Vorhersagen |
-| Offen | Noch nicht geschätzte Vorhersagen |
-| Ausstehend | Geschätzte, aber noch nicht aufgelöste Vorhersagen |
-| Aufgelöst | Abgeschlossene Vorhersagen |
+| Tab | Inhalt | Standard-Sortierung |
+|-----|--------|---------------------|
+| Alle | Alle Vorhersagen | Erstelldatum aufsteigend |
+| Offen | Noch nicht geschätzte Vorhersagen | Erstelldatum aufsteigend |
+| Ausstehend | Geschätzte, aber noch nicht aufgelöste Vorhersagen | Erstelldatum aufsteigend; Kalender-Symbol schaltet auf Fälligkeitsdatum um (Einträge ohne Deadline stets am Ende) |
+| Aufgelöst | Abgeschlossene Vorhersagen | Auflösungsdatum absteigend |
+
+Das Pfeil-Symbol in der AppBar kehrt die Sortierung des aktiven Tabs um.

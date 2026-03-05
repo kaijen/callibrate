@@ -10,7 +10,7 @@ Mittlerer quadratischer Fehler der Schätzungen:
 BS = (1/N) × Σ (pᵢ - oᵢ)²
 ```
 
-- `pᵢ` – geschätzte Wahrscheinlichkeit (0–1)
+- `pᵢ` – geschätzte Wahrscheinlichkeit (0,5–1)
 - `oᵢ` – tatsächliches Ergebnis (0 oder 1)
 - Wertebereich: 0 (perfekt) bis 1 (maximal falsch)
 
@@ -32,7 +32,7 @@ Wer ein eingetretenes Ereignis mit 1 % schätzt, wird stärker bestraft als beim
 
 ## Kalibrierungskurve
 
-Schätzungen werden in 10-%-Bins gruppiert (0–10 %, 10–20 %, …). Pro Bin zeigt die Kurve:
+Schätzungen werden in 10-%-Bins gruppiert (50–60 %, 60–70 %, …). Pro Bin zeigt die Kurve:
 
 - **X-Achse** – Mitte des Bins (erwartete Trefferquote)
 - **Y-Achse** – tatsächliche Trefferquote in diesem Bin
@@ -40,6 +40,8 @@ Schätzungen werden in 10-%-Bins gruppiert (0–10 %, 10–20 %, …). Pro Bin z
 Eine perfekt kalibrierte Person liegt auf der Diagonale: Wer 70 % sagt, hat in 70 % der Fälle recht.
 
 Abweichungen nach oben zeigen Unterschätzung (zu bescheiden), Abweichungen nach unten Überschätzung (zu selbstsicher).
+
+Die **Punktgröße** zeigt die relative Datenmenge: Der Bin mit den meisten Schätzungen erscheint am größten, alle anderen skalieren proportional dazu.
 
 ---
 

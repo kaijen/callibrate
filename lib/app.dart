@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/providers.dart';
 import 'core/services/notification_service.dart';
 import 'features/home/presentation/home_screen.dart';
@@ -65,6 +66,16 @@ class _KailibrateAppState extends ConsumerState<KailibrateApp> {
   void initState() {
     super.initState();
     _rescheduleNotifications();
+    _runConfidenceRoundingMigration();
+  }
+
+  Future<void> _runConfidenceRoundingMigration() async {
+    const key = 'confidence_rounding_migration_v1';
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(key) == true) return;
+    final db = ref.read(appDatabaseProvider);
+    await db.roundAllConfidenceLevels();
+    await prefs.setBool(key, true);
   }
 
   Future<void> _rescheduleNotifications() async {

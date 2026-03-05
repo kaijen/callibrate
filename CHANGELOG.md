@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0-beta.1] - 2026-03-05
+
+### Added
+- "Ohne Tag" filter chip in prediction list; visible only when untagged
+  entries exist, visually distinct via secondary-color border (#72)
+- Rename action in the global tag manager; inline dialog with
+  pre-filled name, updates all predictions at once (#73)
+- Confidence slider now snaps to 5 % steps from 50 to 100 %;
+  one-time startup migration rounds existing values (#71)
+
+### Fixed
+- Type cast error in v3 schema migration (`addColumn` expected
+  `GeneratedColumn<Object>`) (#73)
+
+## [1.1.1-beta.1] - 2026-03-05
+
+### Added
+- Calendar toggle in the pending tab AppBar to sort by deadline;
+  entries without a deadline stay at the end regardless of direction
+- Global tag manager in Settings to delete tags from all predictions
+  at once, with per-tag confirmation dialog (#70)
+
+## [1.1.0-beta.1] - 2026-03-05
+
+### Added
+- Overdue indicator on home screen stat cards; cards turn red with a
+  warning icon when unresolved predictions have passed their deadline (#54)
+- "Überfällig" filter chip in prediction list to show only overdue
+  predictions across open and pending tabs (#55)
+- Delete button in resolve screen AppBar with confirmation dialog (#56)
+- Sort order toggle in prediction list; reverses per-tab default
+  (open/pending: oldest first; resolved: newest first) (#57)
+- Tag selection via FilterChips in the AI generator, sourced from
+  existing database tags (#68)
+
+### Fixed
+- Interval confidence slider minimum raised to 50 %; calibration bins
+  restructured to cover 50–100 % range (#67)
+- Calibration dot size scaled proportionally to the most-populated
+  bin instead of a hard clamp (#69)
+
 ## [1.0.0] - 2026-03-04
 
 First stable release of Kailibrate. All features from the v0.20–v0.28
@@ -539,7 +580,10 @@ breaking changes will follow semver and require a major version bump.
 - Settings screen, tag filter, and clipboard import for question sets
 - GitHub Actions release workflow for tag-triggered APK builds
 
-[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.2.0-beta.1...HEAD
+[1.2.0-beta.1]: https://github.com/kaijen/kailibrate/compare/v1.1.1-beta.1...v1.2.0-beta.1
+[1.1.1-beta.1]: https://github.com/kaijen/kailibrate/compare/v1.1.0-beta.1...v1.1.1-beta.1
+[1.1.0-beta.1]: https://github.com/kaijen/kailibrate/compare/v1.0.0...v1.1.0-beta.1
 [1.0.0]: https://github.com/kaijen/kailibrate/compare/v0.28.0...v1.0.0
 [0.28.0]: https://github.com/kaijen/kailibrate/compare/v0.19.0...v0.28.0
 [0.28.0-beta.1]: https://github.com/kaijen/kailibrate/compare/v0.27.0-beta.1...v0.28.0-beta.1

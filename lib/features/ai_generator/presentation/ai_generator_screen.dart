@@ -21,12 +21,24 @@ class AiGeneratorScreen extends ConsumerStatefulWidget {
 class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
   final _topicController = TextEditingController();
   final _tagsController = TextEditingController();
+  final Set<String> _selectedTags = {};
   bool _hasApiKey = false;
 
   @override
   void initState() {
     super.initState();
     _checkApiKey();
+  }
+
+  void _syncTagsToNotifier() {
+    final notifier = ref.read(aiGeneratorProvider.notifier);
+    final fromChips = _selectedTags.toList();
+    final fromText = _tagsController.text
+        .split(',')
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
+    notifier.setTags({...fromChips, ...fromText}.join(', '));
   }
 
   Future<void> _checkApiKey() async {
@@ -226,14 +238,49 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
             onChanged: notifier.setCount,
           ),
           const SizedBox(height: 20),
+          Text('Tags (optional)',
+              style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 8),
+          ref.watch(predictionsStreamProvider).maybeWhen(
+            data: (predictions) {
+              final tags = <String>{};
+              for (final p in predictions) {
+                tags.addAll(p.tagList);
+              }
+              final sorted = tags.toList()..sort();
+              if (sorted.isEmpty) return const SizedBox.shrink();
+              return Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: sorted
+                    .map((tag) => FilterChip(
+                          label: Text(tag),
+                          selected: _selectedTags.contains(tag),
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _selectedTags.add(tag);
+                              } else {
+                                _selectedTags.remove(tag);
+                              }
+                            });
+                            _syncTagsToNotifier();
+                          },
+                        ))
+                    .toList(),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 8),
           TextField(
             controller: _tagsController,
             decoration: const InputDecoration(
-              labelText: 'Tags (optional)',
+              labelText: 'Neuen Tag eingeben',
               hintText: 'z.B. history, science',
               border: OutlineInputBorder(),
             ),
-            onChanged: notifier.setTags,
+            onChanged: (_) => _syncTagsToNotifier(),
           ),
           const SizedBox(height: 28),
           SizedBox(

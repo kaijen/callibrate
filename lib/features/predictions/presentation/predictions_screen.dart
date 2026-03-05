@@ -24,6 +24,10 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
   late final TabController _tabController;
   final Set<String> _selectedTags = {};
   final Set<int> _selectedIds = {};
+  bool _sortReversed = false;
+  bool _sortByDeadline = false;
+  bool _showOverdueOnly = false;
+  bool _filterUntagged = false;
 
   // Wird in build() aktualisiert – für Select-All ohne extra State.
   List<PredictionView> _currentPredictions = [];
@@ -38,6 +42,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
       vsync: this,
       initialIndex: widget.initialFilter.index,
     );
+    _tabController.addListener(() => setState(() {}));
   }
 
   @override
@@ -93,7 +98,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
   List<PredictionView> _filteredForTab(
       List<PredictionView> predictions, FilterTab tab) {
     var list = switch (tab) {
-      FilterTab.all => predictions,
+      FilterTab.all => predictions.toList(),
       FilterTab.pending =>
         predictions.where((p) => p.status == PredictionStatus.pending).toList(),
       FilterTab.needsResolution => predictions
@@ -103,8 +108,42 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
           .where((p) => p.status == PredictionStatus.resolved)
           .toList(),
     };
-    if (_selectedTags.isNotEmpty) {
-      list = list.where((p) => p.tagList.any(_selectedTags.contains)).toList();
+    if (_selectedTags.isNotEmpty || _filterUntagged) {
+      list = list.where((p) {
+        if (_filterUntagged && p.tagList.isEmpty) return true;
+        return p.tagList.any(_selectedTags.contains);
+      }).toList();
+    }
+    if (_showOverdueOnly && tab != FilterTab.resolved) {
+      final now = DateTime.now();
+      list = list
+          .where((p) =>
+              p.question.deadline != null &&
+              p.question.deadline!.isBefore(now))
+          .toList();
+    }
+    if (tab == FilterTab.resolved) {
+      list.sort((a, b) {
+        final cmp = a.resolution!.resolvedAt
+            .compareTo(b.resolution!.resolvedAt);
+        return _sortReversed ? cmp : -cmp; // default: newest first
+      });
+    } else if (tab == FilterTab.needsResolution && _sortByDeadline) {
+      list.sort((a, b) {
+        final da = a.question.deadline;
+        final db = b.question.deadline;
+        if (da == null && db == null) return 0;
+        if (da == null) return 1;  // nulls always last
+        if (db == null) return -1;
+        final cmp = da.compareTo(db);
+        return _sortReversed ? -cmp : cmp; // default: earliest deadline first
+      });
+    } else {
+      list.sort((a, b) {
+        final cmp =
+            a.question.createdAt.compareTo(b.question.createdAt);
+        return _sortReversed ? -cmp : cmp; // default: oldest first
+      });
     }
     return list;
   }
@@ -209,7 +248,30 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
                   onPressed: _deleteSelected,
                 ),
               ]
-            : null,
+            : [
+                if (_tabController.index == FilterTab.needsResolution.index)
+                  IconButton(
+                    icon: Icon(
+                      _sortByDeadline ? Icons.event : Icons.event_outlined,
+                      color: _sortByDeadline
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    tooltip: _sortByDeadline
+                        ? 'Nach Erstelldatum sortieren'
+                        : 'Nach Fälligkeitsdatum sortieren',
+                    onPressed: () =>
+                        setState(() => _sortByDeadline = !_sortByDeadline),
+                  ),
+                IconButton(
+                  icon: Icon(_sortReversed
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward),
+                  tooltip: 'Sortierung umkehren',
+                  onPressed: () =>
+                      setState(() => _sortReversed = !_sortReversed),
+                ),
+              ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -227,10 +289,11 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         data: (predictions) {
           _currentPredictions = predictions;
           final allTags = _collectTags(predictions);
+          final hasUntagged = predictions.any((p) => p.tagList.isEmpty);
           _selectedTags.removeWhere((tag) => !allTags.contains(tag));
           return Column(
             children: [
-              if (allTags.isNotEmpty) _buildTagFilter(allTags),
+              _buildTagFilter(allTags, hasUntagged: hasUntagged),
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -258,7 +321,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
     );
   }
 
-  Widget _buildTagFilter(Set<String> allTags) {
+  Widget _buildTagFilter(Set<String> allTags, {required bool hasUntagged}) {
     final tags = allTags.toList()..sort();
     return SizedBox(
       height: 48,
@@ -266,6 +329,39 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: const Text('Überfällig'),
+              avatar: const Icon(Icons.warning_amber, size: 16),
+              selected: _showOverdueOnly,
+              onSelected: (_) =>
+                  setState(() => _showOverdueOnly = !_showOverdueOnly),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          if (hasUntagged)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: const Text('Ohne Tag'),
+                avatar: const Icon(Icons.label_off_outlined, size: 16),
+                selected: _filterUntagged,
+                onSelected: (_) =>
+                    setState(() => _filterUntagged = !_filterUntagged),
+                visualDensity: VisualDensity.compact,
+                selectedColor:
+                    Theme.of(context).colorScheme.secondaryContainer,
+                checkmarkColor:
+                    Theme.of(context).colorScheme.onSecondaryContainer,
+                side: BorderSide(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .secondary
+                      .withValues(alpha: 0.6),
+                ),
+              ),
+            ),
           for (final tag in tags)
             Padding(
               padding: const EdgeInsets.only(right: 8),

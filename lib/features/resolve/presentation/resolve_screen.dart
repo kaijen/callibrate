@@ -14,12 +14,54 @@ class ResolveScreen extends ConsumerWidget {
 
   const ResolveScreen({super.key, required this.questionId});
 
+  Future<void> _confirmDelete(
+      BuildContext context, WidgetRef ref, AppDatabase db) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Vorhersage löschen'),
+        content: const Text(
+          'Diese Vorhersage wird endgültig gelöscht – inklusive Schätzung. '
+          'Nutze diese Option wenn die Frage fehlerhaft ist, '
+          'z.\u202fB. bei Modell-Halluzinationen.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await db.deleteQuestions([questionId]);
+    ref.invalidate(predictionsStreamProvider);
+    if (context.mounted) context.pop();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(appDatabaseProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Auflösen')),
+      appBar: AppBar(
+        title: const Text('Auflösen'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Vorhersage löschen',
+            onPressed: () => _confirmDelete(context, ref, db),
+          ),
+        ],
+      ),
       body: FutureBuilder<_ResolveData>(
         future: _loadData(db),
         builder: (context, snapshot) {
