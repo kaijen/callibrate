@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
@@ -294,30 +295,41 @@ class ImportScreen extends ConsumerWidget {
 class _FormatInfoCard extends StatelessWidget {
   const _FormatInfoCard();
 
+  static final _docsUri = Uri.parse(
+    'https://kaijen.github.io/kailibrate/latest/import-export/format/',
+  );
+
+  Future<void> _openDocs(BuildContext context) async {
+    if (!await launchUrl(_docsUri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Dokumentation konnte nicht geöffnet werden.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline,
-                    color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
-                Text('Unterstützte Formate',
-                    style: Theme.of(context).textTheme.titleSmall),
-              ],
+            Icon(Icons.info_outline,
+                color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'JSON oder YAML – Version 1 (manuell) oder Version 2 (App-Export)',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'JSON oder YAML mit den Feldern: version, category (epistemic/aleatory), questions[]. '
-              'Jede Frage braucht mindestens "text". Optional: tags, answer, deadline, predictionType, '
-              'probability, binaryChoice, confidenceLevel, lowerBound, upperBound, unit.',
-              style: Theme.of(context).textTheme.bodySmall,
+            TextButton(
+              onPressed: () => _openDocs(context),
+              child: const Text('Format →'),
             ),
           ],
         ),

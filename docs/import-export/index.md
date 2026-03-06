@@ -27,14 +27,13 @@ Fehler bei ungültigem Schema führen zu einem Fehlerdialog mit Zeilennummer. Es
 
 ### Aufgaben teilen
 
-**Einstellungen → Aufgaben teilen** exportiert aufgelöste Vorhersagen, aber ohne die eigenen Schätzungen. So können andere dieselben Fragen selbst kalibrieren, ohne die eigenen Einschätzungen zu sehen.
+Der Teilen-Button in der AppBar der Vorhersagenliste exportiert die aktuell sichtbaren Vorhersagen ohne eigene Schätzungen. So können andere dieselben Fragen selbst kalibrieren.
 
 Ablauf:
 
-1. **Einstellungen → Aufgaben teilen** antippen.
-2. Im Dialog optional eine Kategorie wählen (Alle / Epistemisch / Aleatorisch).
-3. Optional einen oder mehrere Tags wählen – es werden nur Fragen exportiert, die mindestens einen der gewählten Tags tragen. Kein Tag gewählt bedeutet: alle Tags.
-4. **Exportieren** bestätigen – die Datei wird per Share-Sheet geteilt.
+1. In der **Vorhersagenliste** den gewünschten Tab wählen (z.B. „Aufgelöst") und bei Bedarf Tags oder weitere Filter setzen.
+2. Das **Teilen-Symbol** in der AppBar antippen.
+3. Zieldienst im Android-Share-Sheet wählen – die Datei wird übertragen.
 
 Die exportierte Datei enthält die Auflösungen obfuskiert. Kailibrate zeigt beim Empfänger „Lösung vorhanden" und löst die Vorhersage nach der Schätzung automatisch auf.
 
