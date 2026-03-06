@@ -39,6 +39,37 @@ class _PredictionDetailScreenState
     if (mounted) setState(() { _prediction = p; _loading = false; });
   }
 
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Vorhersage löschen'),
+        content: const Text(
+          'Diese Vorhersage wird endgültig gelöscht. '
+          'Diese Aktion kann nicht rückgängig gemacht werden.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final db = ref.read(appDatabaseProvider);
+    await db.deleteQuestions([widget.questionId]);
+    if (mounted) context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(appDatabaseProvider);
@@ -68,7 +99,17 @@ class _PredictionDetailScreenState
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Details')),
+      appBar: AppBar(
+        title: const Text('Details'),
+        actions: [
+          if (!_loading && _prediction != null)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Vorhersage löschen',
+              onPressed: _delete,
+            ),
+        ],
+      ),
       floatingActionButton: fab,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
