@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
 import 'prediction_card.dart';
@@ -26,8 +27,13 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
   late final TabController _tabController;
   final Set<String> _selectedTags = {};
   final Set<int> _selectedIds = {};
-  bool _sortReversed = false;
-  bool _sortByDeadline = false;
+  final Map<FilterTab, bool> _sortReversed = {
+    for (final tab in FilterTab.values) tab: false,
+  };
+  final Map<FilterTab, bool> _sortByDeadline = {
+    FilterTab.needsResolution: false,
+  };
+  SharedPreferences? _prefs;
   bool _showOverdueOnly = false;
   bool _filterUntagged = false;
   bool _sharing = false;
@@ -46,6 +52,33 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
       initialIndex: widget.initialFilter.index,
     );
     _tabController.addListener(() => setState(() {}));
+    _loadSortPrefs();
+  }
+
+  Future<void> _loadSortPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _prefs = prefs;
+      for (final tab in FilterTab.values) {
+        _sortReversed[tab] =
+            prefs.getBool('sort_reversed_${tab.name}') ?? false;
+      }
+      _sortByDeadline[FilterTab.needsResolution] =
+          prefs.getBool('sort_bydeadline_needsResolution') ?? false;
+    });
+  }
+
+  void _toggleSortReversed() {
+    final tab = FilterTab.values[_tabController.index];
+    final newVal = !(_sortReversed[tab] ?? false);
+    setState(() => _sortReversed[tab] = newVal);
+    _prefs?.setBool('sort_reversed_${tab.name}', newVal);
+  }
+
+  void _toggleSortByDeadline() {
+    final newVal = !(_sortByDeadline[FilterTab.needsResolution] ?? false);
+    setState(() => _sortByDeadline[FilterTab.needsResolution] = newVal);
+    _prefs?.setBool('sort_bydeadline_needsResolution', newVal);
   }
 
   @override
@@ -166,27 +199,28 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
               p.question.deadline!.isBefore(now))
           .toList();
     }
+    final reversed = _sortReversed[tab] ?? false;
     if (tab == FilterTab.resolved) {
       list.sort((a, b) {
         final cmp = a.resolution!.resolvedAt
             .compareTo(b.resolution!.resolvedAt);
-        return _sortReversed ? cmp : -cmp; // default: newest first
+        return reversed ? cmp : -cmp; // default: newest first
       });
-    } else if (tab == FilterTab.needsResolution && _sortByDeadline) {
+    } else if (tab == FilterTab.needsResolution &&
+        (_sortByDeadline[tab] ?? false)) {
       list.sort((a, b) {
         final da = a.question.deadline;
         final db = b.question.deadline;
         if (da == null && db == null) return 0;
-        if (da == null) return 1;  // nulls always last
+        if (da == null) return 1; // nulls always last
         if (db == null) return -1;
         final cmp = da.compareTo(db);
-        return _sortReversed ? -cmp : cmp; // default: earliest deadline first
+        return reversed ? -cmp : cmp; // default: earliest deadline first
       });
     } else {
       list.sort((a, b) {
-        final cmp =
-            a.question.createdAt.compareTo(b.question.createdAt);
-        return _sortReversed ? -cmp : cmp; // default: oldest first
+        final cmp = a.question.createdAt.compareTo(b.question.createdAt);
+        return reversed ? -cmp : cmp; // default: oldest first
       });
     }
     return list;
@@ -298,24 +332,29 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
                 if (_tabController.index == FilterTab.needsResolution.index)
                   IconButton(
                     icon: Icon(
-                      _sortByDeadline ? Icons.event : Icons.event_outlined,
-                      color: _sortByDeadline
+                      (_sortByDeadline[FilterTab.needsResolution] ?? false)
+                          ? Icons.event
+                          : Icons.event_outlined,
+                      color: (_sortByDeadline[FilterTab.needsResolution] ??
+                              false)
                           ? Theme.of(context).colorScheme.primary
                           : null,
                     ),
-                    tooltip: _sortByDeadline
-                        ? 'Nach Erstelldatum sortieren'
-                        : 'Nach Fälligkeitsdatum sortieren',
-                    onPressed: () =>
-                        setState(() => _sortByDeadline = !_sortByDeadline),
+                    tooltip:
+                        (_sortByDeadline[FilterTab.needsResolution] ?? false)
+                            ? 'Nach Erstelldatum sortieren'
+                            : 'Nach Fälligkeitsdatum sortieren',
+                    onPressed: _toggleSortByDeadline,
                   ),
                 IconButton(
-                  icon: Icon(_sortReversed
-                      ? Icons.arrow_upward
-                      : Icons.arrow_downward),
+                  icon: Icon(
+                    (_sortReversed[FilterTab.values[_tabController.index]] ??
+                            false)
+                        ? Icons.arrow_upward
+                        : Icons.arrow_downward,
+                  ),
                   tooltip: 'Sortierung umkehren',
-                  onPressed: () =>
-                      setState(() => _sortReversed = !_sortReversed),
+                  onPressed: _toggleSortReversed,
                 ),
                 _sharing
                     ? const Padding(
