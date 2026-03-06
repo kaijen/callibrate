@@ -23,6 +23,7 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
   final _tagsController = TextEditingController();
   final Set<String> _selectedTags = {};
   bool _hasApiKey = false;
+  Set<int>? _selectedQuestionIndices;
 
   @override
   void initState() {
@@ -68,6 +69,13 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
           notifier.selectTemplate(templates.first);
         }
       });
+    });
+
+    // Reset question selection when a new generation starts
+    ref.listen(aiGeneratorProvider.select((s) => s.phase), (_, next) {
+      if (next == AiGeneratorPhase.loading) {
+        setState(() => _selectedQuestionIndices = null);
+      }
     });
 
     // Auto-select initial model (last used or first in list)
@@ -335,13 +343,21 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
   ) {
     final file = genState.result!;
     final notifier = ref.read(aiGeneratorProvider.notifier);
+
+    // Initialize: all questions selected
+    _selectedQuestionIndices ??=
+        Set.from(Iterable.generate(file.questions.length));
+    final selected = _selectedQuestionIndices!;
+
     final now = DateTime.now();
     final pastCount = file.questions
         .where((q) => q.deadline != null && q.deadline!.isBefore(now))
         .length;
-    final importCount = genState.excludePastDeadlines
-        ? file.questions.length - pastCount
-        : file.questions.length;
+    final importCount = selected.where((i) {
+      if (!genState.excludePastDeadlines) return true;
+      final q = file.questions[i];
+      return q.deadline == null || !q.deadline!.isBefore(now);
+    }).length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -433,32 +449,51 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
             ),
           ],
           const SizedBox(height: 8),
-          Text('Fragen (erste 5)',
-              style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 4),
-          ...file.questions.take(5).map(
-                (q) => Card(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  child: ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.question_mark, size: 20),
-                    title: Text(q.text,
-                        style: Theme.of(context).textTheme.bodyMedium),
-                    subtitle: q.tags.isNotEmpty
-                        ? Text(q.tags.join(', '),
-                            style: Theme.of(context).textTheme.bodySmall)
-                        : null,
-                  ),
+          Row(
+            children: [
+              Text('Fragen auswählen',
+                  style: Theme.of(context).textTheme.titleSmall),
+              const Spacer(),
+              TextButton(
+                onPressed: () => setState(() {
+                  if (selected.length == file.questions.length) {
+                    selected.clear();
+                  } else {
+                    selected.addAll(
+                        Iterable.generate(file.questions.length));
+                  }
+                }),
+                child: Text(
+                  selected.length == file.questions.length
+                      ? 'Keine'
+                      : 'Alle',
                 ),
               ),
-          if (file.questions.length > 5)
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 8),
-              child: Text(
-                '… und ${file.questions.length - 5} weitere',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
+            ],
+          ),
+          ...file.questions.asMap().entries.map((entry) {
+            final i = entry.key;
+            final q = entry.value;
+            return CheckboxListTile(
+              value: selected.contains(i),
+              onChanged: (checked) => setState(() {
+                if (checked == true) {
+                  selected.add(i);
+                } else {
+                  selected.remove(i);
+                }
+              }),
+              title: Text(q.text,
+                  style: Theme.of(context).textTheme.bodyMedium),
+              subtitle: q.tags.isNotEmpty
+                  ? Text(q.tags.join(', '),
+                      style: Theme.of(context).textTheme.bodySmall)
+                  : null,
+              dense: true,
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            );
+          }),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -552,12 +587,17 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
 
     try {
       final now = DateTime.now();
-      final questionsToImport = genState.excludePastDeadlines
-          ? file.questions
-              .where((q) =>
-                  q.deadline == null || !q.deadline!.isBefore(now))
-              .toList()
-          : file.questions;
+      final selectedIndices = _selectedQuestionIndices ?? {};
+      final questionsToImport = file.questions
+          .asMap()
+          .entries
+          .where((e) => selectedIndices.contains(e.key))
+          .where((e) =>
+              !genState.excludePastDeadlines ||
+              e.value.deadline == null ||
+              !e.value.deadline!.isBefore(now))
+          .map((e) => e.value)
+          .toList();
 
       await db.transaction(() async {
         for (final q in questionsToImport) {

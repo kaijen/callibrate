@@ -42,15 +42,11 @@ Eigene Vorlagen können in den **Einstellungen → Vorlagen** erstellt und bearb
 
 ## Vorschau und Import
 
-Nach dem Generieren erscheint eine Vorschau mit:
-
-- Anzahl der erzeugten Fragen
-- Geschätzten Kosten und Tokenverbrauch
-- Den ersten fünf Fragen zur Kontrolle
+Nach dem Generieren erscheint eine Vorschau mit Metadaten (Anzahl, Kosten, Tokenverbrauch) sowie allen erzeugten Fragen als Auswahlliste. Alle Fragen sind zunächst angehakt. Einzelne Fragen lassen sich durch Antippen abwählen; über „Alle" und „Keine" lässt sich die Auswahl auf einen Schlag setzen. Der Import-Button zeigt die Anzahl der aktuell ausgewählten Fragen.
 
 ### Vergangene Deadlines
 
-Enthält der Katalog aleatorische Fragen mit einem Deadline-Datum in der Vergangenheit, erscheint eine Warnung. Das kann vorkommen, wenn das Modell trotz Anweisung veraltete Daten erzeugt. Per Checkbox lassen sich diese Fragen vom Import ausschließen. Der Import-Button zeigt die tatsächliche Anzahl der zu importierenden Fragen.
+Enthält der Katalog aleatorische Fragen mit einem Deadline-Datum in der Vergangenheit, erscheint eine Warnung. Das kann vorkommen, wenn das Modell trotz Anweisung veraltete Daten erzeugt. Per Checkbox lassen sich diese Fragen zusätzlich vom Import ausschließen – oder sie werden einfach manuell aus der Auswahl entfernt.
 
 ### Importieren oder Teilen
 
