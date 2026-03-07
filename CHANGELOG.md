@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-03-07
+
+### Added
+- Winkler Score chart: tapping a data point opens the corresponding
+  prediction detail; back navigation returns to statistics (#90)
+
 ## [1.4.2] - 2026-03-06
 
 ### Fixed
@@ -661,7 +667,8 @@ breaking changes will follow semver and require a major version bump.
 - Settings screen, tag filter, and clipboard import for question sets
 - GitHub Actions release workflow for tag-triggered APK builds
 
-[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/kaijen/kailibrate/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/kaijen/kailibrate/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/kaijen/kailibrate/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/kaijen/kailibrate/compare/v1.3.0...v1.4.0
