@@ -21,6 +21,7 @@ class AiGeneratorState {
   final double? generationCost;
   final int? generationTokens;
   final bool excludePastDeadlines;
+  final int importedCount;
 
   const AiGeneratorState({
     this.phase = AiGeneratorPhase.form,
@@ -33,6 +34,7 @@ class AiGeneratorState {
     this.generationCost,
     this.generationTokens,
     this.excludePastDeadlines = true,
+    this.importedCount = 0,
   });
 
   AiGeneratorState copyWith({
@@ -48,6 +50,7 @@ class AiGeneratorState {
     Object? generationCost = _sentinel,
     Object? generationTokens = _sentinel,
     bool? excludePastDeadlines,
+    int? importedCount,
   }) {
     return AiGeneratorState(
       phase: phase ?? this.phase,
@@ -65,6 +68,7 @@ class AiGeneratorState {
           ? this.generationTokens
           : generationTokens as int?,
       excludePastDeadlines: excludePastDeadlines ?? this.excludePastDeadlines,
+      importedCount: importedCount ?? this.importedCount,
     );
   }
 }
@@ -182,8 +186,11 @@ class AiGeneratorNotifier extends StateNotifier<AiGeneratorState> {
     }
   }
 
-  void setImported() {
-    state = state.copyWith(phase: AiGeneratorPhase.imported);
+  void setImported(int count) {
+    state = state.copyWith(
+      phase: AiGeneratorPhase.imported,
+      importedCount: count,
+    );
   }
 }
 

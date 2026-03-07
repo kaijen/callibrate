@@ -20,7 +20,7 @@ class _ImportState {
   final String? errorMessage;
   final bool importing;
   final bool imported;
-  final bool skipDuplicates;
+  final int importedCount;
 
   const _ImportState({
     this.parsedFile,
@@ -28,7 +28,7 @@ class _ImportState {
     this.errorMessage,
     this.importing = false,
     this.imported = false,
-    this.skipDuplicates = true,
+    this.importedCount = 0,
   });
 
   _ImportState copyWith({
@@ -37,7 +37,7 @@ class _ImportState {
     String? errorMessage,
     bool? importing,
     bool? imported,
-    bool? skipDuplicates,
+    int? importedCount,
     bool clearError = false,
     bool clearFile = false,
   }) {
@@ -47,7 +47,7 @@ class _ImportState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       importing: importing ?? this.importing,
       imported: imported ?? this.imported,
-      skipDuplicates: skipDuplicates ?? this.skipDuplicates,
+      importedCount: importedCount ?? this.importedCount,
     );
   }
 }
@@ -67,12 +67,8 @@ class _ImportNotifier extends StateNotifier<_ImportState> {
     state = state.copyWith(importing: true);
   }
 
-  void setImported() {
-    state = const _ImportState(imported: true);
-  }
-
-  void toggleSkipDuplicates() {
-    state = state.copyWith(skipDuplicates: !state.skipDuplicates);
+  void setImported(int count) {
+    state = _ImportState(imported: true, importedCount: count);
   }
 
   void reset() {
@@ -84,13 +80,38 @@ final _importNotifierProvider =
     StateNotifierProvider.autoDispose<_ImportNotifier, _ImportState>(
         (_) => _ImportNotifier());
 
-class ImportScreen extends ConsumerWidget {
+class ImportScreen extends ConsumerStatefulWidget {
   const ImportScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ImportScreen> createState() => _ImportScreenState();
+}
+
+class _ImportScreenState extends ConsumerState<ImportScreen> {
+  Set<int>? _selectedIndices;
+  Set<int> _duplicateIndices = {};
+  bool _loadingExisting = false;
+
+  int get _selectedCount => _selectedIndices?.length ?? 0;
+
+  @override
+  Widget build(BuildContext context) {
     final importState = ref.watch(_importNotifierProvider);
     final notifier = ref.read(_importNotifierProvider.notifier);
+
+    ref.listen(
+      _importNotifierProvider.select((s) => s.parsedFile),
+      (prev, next) {
+        if (next == null) {
+          setState(() {
+            _selectedIndices = null;
+            _duplicateIndices = {};
+          });
+        } else if (next != prev) {
+          _loadExistingAndInitSelection(next);
+        }
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Importieren')),
@@ -131,10 +152,15 @@ class ImportScreen extends ConsumerWidget {
             if (importState.imported) ...[
               const SizedBox(height: 16),
               Card(
-                color: Colors.green.withOpacity(0.15),
-                child: const ListTile(
-                  leading: Icon(Icons.check_circle, color: Colors.green),
-                  title: Text('Import erfolgreich'),
+                color: Colors.green.withValues(alpha: 0.15),
+                child: ListTile(
+                  leading:
+                      const Icon(Icons.check_circle, color: Colors.green),
+                  title: Text(
+                    importState.importedCount == 1
+                        ? '1 Frage importiert'
+                        : '${importState.importedCount} Fragen importiert',
+                  ),
                 ),
               ),
             ],
@@ -145,17 +171,11 @@ class ImportScreen extends ConsumerWidget {
                 filename: importState.filename ?? '',
               ),
               const SizedBox(height: 8),
-              SwitchListTile(
-                value: importState.skipDuplicates,
-                onChanged: importState.importing
-                    ? null
-                    : (_) => notifier.toggleSkipDuplicates(),
-                title: const Text('Duplikate überspringen'),
-                subtitle: const Text(
-                    'Fragen mit gleichem Titel werden nicht erneut importiert'),
-                contentPadding: EdgeInsets.zero,
-              ),
-              const SizedBox(height: 8),
+              if (_loadingExisting)
+                const LinearProgressIndicator()
+              else
+                _buildQuestionList(importState.parsedFile!),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -168,10 +188,11 @@ class ImportScreen extends ConsumerWidget {
                       : const Icon(Icons.upload),
                   label: Text(importState.importing
                       ? 'Importiere...'
-                      : '${importState.parsedFile!.questions.length} Fragen importieren'),
-                  onPressed: importState.importing
-                      ? null
-                      : () => _doImport(context, ref, importState),
+                      : '$_selectedCount ${_selectedCount == 1 ? 'Frage' : 'Fragen'} importieren'),
+                  onPressed:
+                      (importState.importing || _selectedCount == 0)
+                          ? null
+                          : () => _doImport(context, importState),
                 ),
               ),
             ],
@@ -179,6 +200,103 @@ class ImportScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildQuestionList(ImportFile file) {
+    final selected = _selectedIndices ?? {};
+    final allNonDuplicateIndices = Set<int>.from(
+      Iterable.generate(file.questions.length)
+          .where((i) => !_duplicateIndices.contains(i)),
+    );
+    final allNonDuplicateSelected =
+        allNonDuplicateIndices.isNotEmpty &&
+            allNonDuplicateIndices.every(selected.contains);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Fragen auswählen',
+                style: Theme.of(context).textTheme.titleSmall),
+            const Spacer(),
+            TextButton(
+              onPressed: () => setState(() {
+                if (allNonDuplicateSelected) {
+                  selected.removeAll(allNonDuplicateIndices);
+                } else {
+                  selected.addAll(allNonDuplicateIndices);
+                }
+              }),
+              child: Text(allNonDuplicateSelected ? 'Keine' : 'Alle'),
+            ),
+          ],
+        ),
+        ...file.questions.asMap().entries.map((entry) {
+          final i = entry.key;
+          final q = entry.value;
+          final isDuplicate = _duplicateIndices.contains(i);
+          return CheckboxListTile(
+            value: isDuplicate ? false : selected.contains(i),
+            onChanged: isDuplicate
+                ? null
+                : (checked) => setState(() {
+                      if (checked == true) {
+                        selected.add(i);
+                      } else {
+                        selected.remove(i);
+                      }
+                    }),
+            title: Text(
+              q.text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    decoration:
+                        isDuplicate ? TextDecoration.lineThrough : null,
+                    color: isDuplicate
+                        ? Theme.of(context).colorScheme.outline
+                        : null,
+                  ),
+            ),
+            subtitle: isDuplicate
+                ? Text(
+                    'Bereits vorhanden',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                  )
+                : q.tags.isNotEmpty
+                    ? Text(q.tags.join(', '),
+                        style: Theme.of(context).textTheme.bodySmall)
+                    : null,
+            dense: true,
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          );
+        }),
+      ],
+    );
+  }
+
+  Future<void> _loadExistingAndInitSelection(ImportFile file) async {
+    setState(() => _loadingExisting = true);
+    final db = ref.read(appDatabaseProvider);
+    final existing =
+        (await db.getAllQuestions()).map((q) => q.questionText).toSet();
+    final duplicates = <int>{};
+    for (var i = 0; i < file.questions.length; i++) {
+      if (existing.contains(file.questions[i].text)) {
+        duplicates.add(i);
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _duplicateIndices = duplicates;
+      _selectedIndices = Set.from(
+        Iterable.generate(file.questions.length)
+            .where((i) => !duplicates.contains(i)),
+      );
+      _loadingExisting = false;
+    });
   }
 
   Future<void> _pasteFromClipboard(
@@ -228,26 +346,22 @@ class ImportScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _doImport(
-      BuildContext context, WidgetRef ref, _ImportState state) async {
-    if (state.parsedFile == null) return;
+  Future<void> _doImport(BuildContext context, _ImportState state) async {
+    if (state.parsedFile == null || _selectedIndices == null) return;
 
     final notifier = ref.read(_importNotifierProvider.notifier);
     notifier.setImporting();
 
     final db = ref.read(appDatabaseProvider);
     final file = state.parsedFile!;
+    final selectedIndices = Set<int>.from(_selectedIndices!);
 
-    final existingTexts = state.skipDuplicates
-        ? (await db.getAllQuestions()).map((q) => q.questionText).toSet()
-        : <String>{};
-
-    final questionsToImport = state.skipDuplicates
-        ? file.questions
-            .where((q) => !existingTexts.contains(q.text))
-            .toList()
-        : file.questions;
-    final skippedCount = file.questions.length - questionsToImport.length;
+    final questionsToImport = file.questions
+        .asMap()
+        .entries
+        .where((e) => selectedIndices.contains(e.key))
+        .map((e) => e.value)
+        .toList();
 
     try {
       await db.transaction(() async {
@@ -286,7 +400,8 @@ class ImportScreen extends ConsumerWidget {
             drift.Value<String?> unit = const drift.Value(null);
             final cl = q.confidenceLevel ?? 0.9;
 
-            if (q.predictionType == 'binary' || q.predictionType == 'factual') {
+            if (q.predictionType == 'binary' ||
+                q.predictionType == 'factual') {
               probability = q.binaryChoice! ? cl : 1.0 - cl;
               binaryChoice = drift.Value(q.binaryChoice);
             } else {
@@ -321,17 +436,7 @@ class ImportScreen extends ConsumerWidget {
       });
 
       ref.invalidate(predictionsStreamProvider);
-      notifier.setImported();
-
-      if (context.mounted && skippedCount > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                '$skippedCount ${skippedCount == 1 ? 'Frage' : 'Fragen'} '
-                'bereits vorhanden – übersprungen'),
-          ),
-        );
-      }
+      notifier.setImported(questionsToImport.length);
     } catch (e) {
       notifier.setError('Import fehlgeschlagen: $e');
     }
@@ -540,43 +645,6 @@ class _PreviewSection extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text('Fragen (erste 5)',
-            style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 4),
-        ...file.questions.take(5).map(
-              (q) => Card(
-                margin: const EdgeInsets.only(bottom: 4),
-                child: ListTile(
-                  dense: true,
-                  leading: q.answer != null
-                      ? Icon(
-                          q.answer! ? Icons.check : Icons.close,
-                          color: q.answer! ? Colors.green : Colors.red,
-                          size: 20,
-                        )
-                      : const Icon(Icons.question_mark, size: 20),
-                  title: Text(q.text,
-                      style: Theme.of(context).textTheme.bodyMedium),
-                  subtitle: q.tags.isNotEmpty
-                      ? Text(q.tags.join(', '),
-                          style: Theme.of(context).textTheme.bodySmall)
-                      : null,
-                  trailing: q.hasEstimateData
-                      ? const Icon(Icons.percent,
-                          size: 16, color: Colors.blue)
-                      : null,
-                ),
-              ),
-            ),
-        if (file.questions.length > 5)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              '... und ${file.questions.length - 5} weitere',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
       ],
     );
   }

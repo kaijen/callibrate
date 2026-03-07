@@ -9,8 +9,8 @@ Fragenkataloge lassen sich als JSON oder YAML importieren – per Dateiauswahl o
 1. Im Menü **Import** wählen.
 2. Datei auswählen oder Text aus Zwischenablage einfügen.
 3. Vorschau prüfen: Anzahl der Fragen, Kategorie, enthaltene Schätzungen.
-4. Optional: **Duplikate überspringen** – Fragen, die bereits mit gleichem Titel in der Datenbank existieren, werden standardmäßig übersprungen. Der Schalter lässt sich für einen Import deaktivieren.
-5. **Importieren** bestätigen.
+4. Einzelne Fragen per Checkbox ab- oder anwählen. Bereits vorhandene Fragen (gleicher Titel) sind automatisch abgewählt, durchgestrichen und nicht auswählbar.
+5. **Importieren** bestätigen – der Button zeigt die Anzahl der tatsächlich zu importierenden Fragen.
 
 Enthält eine Frage bereits Schätzfelder, speichert die App sie sofort. Enthält sie eine Auflösung, wird die Vorhersage direkt als aufgelöst markiert.
 
