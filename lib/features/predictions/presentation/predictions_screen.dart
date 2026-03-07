@@ -203,7 +203,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
           .where((p) => p.question.predictionType == _selectedPredictionType)
           .toList();
     }
-    if (_overdueFilter != null && tab != FilterTab.resolved) {
+    if (_overdueFilter != null) {
       final now = DateTime.now();
       list = list.where((p) {
         final overdue = p.question.deadline != null &&
@@ -443,11 +443,13 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         .any((p) => p.question.predictionType == 'probability');
     final hasBinary =
         _currentPredictions.any((p) => p.question.predictionType == 'binary');
+    final hasFactual =
+        _currentPredictions.any((p) => p.question.predictionType == 'factual');
     final hasInterval =
         _currentPredictions.any((p) => p.question.predictionType == 'interval');
 
     final showCategoryFilter = hasEpistemic && hasAleatory;
-    final typeCount = [hasProbability, hasBinary, hasInterval]
+    final typeCount = [hasProbability, hasBinary, hasFactual, hasInterval]
         .where((b) => b)
         .length;
     final showTypeFilter = typeCount > 1;
@@ -553,6 +555,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
             _divider(),
             if (hasProbability) typeChip('probability', 'Wahrscheinlichkeit'),
             if (hasBinary) typeChip('binary', 'Ja/Nein'),
+            if (hasFactual) typeChip('factual', 'Wahr/Falsch'),
             if (hasInterval) typeChip('interval', 'Intervall'),
           ],
           if (tags.isNotEmpty) ...[

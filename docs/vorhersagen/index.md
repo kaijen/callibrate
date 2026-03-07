@@ -36,7 +36,7 @@ Jede Vorhersage kann beliebig viele Tags tragen. In der Vorhersagenliste filtert
 
 Der Chip **Fälligkeit** durchläuft drei Zustände per Antippen: **Fälligkeit** (kein Filter) → **Überfällig** (nur Vorhersagen mit abgelaufener Deadline) → **Nicht überfällig** (nur Vorhersagen ohne abgelaufene Deadline) → zurück zu Fälligkeit. Auf der Übersichtsseite werden die Karten „Offen" und „Ausstehend" rot hervorgehoben, sobald überfällige Einträge existieren.
 
-Sobald die Liste Vorhersagen beider Kategorien enthält, erscheinen die Chips **Epistemisch** und **Aleatorisch** — damit lässt sich auf eine Kategorie einschränken. Ebenso werden Chips für die Typen **Wahrscheinlichkeit**, **Ja/Nein** und **Intervall** eingeblendet, wenn mehr als ein Typ in der Liste vorkommt. Kategorie- und Typ-Filter lassen sich unabhängig voneinander kombinieren; ein aktiver Chip lässt sich durch erneutes Antippen deaktivieren.
+Sobald die Liste Vorhersagen beider Kategorien enthält, erscheinen die Chips **Epistemisch** und **Aleatorisch** — damit lässt sich auf eine Kategorie einschränken. Ebenso werden Chips für die Typen **Wahrscheinlichkeit**, **Ja/Nein**, **Wahr/Falsch** und **Intervall** eingeblendet, wenn mehr als ein Typ in der Liste vorkommt. Kategorie- und Typ-Filter lassen sich unabhängig voneinander kombinieren; ein aktiver Chip lässt sich durch erneutes Antippen deaktivieren.
 
 ---
 
