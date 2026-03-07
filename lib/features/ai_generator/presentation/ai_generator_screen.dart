@@ -152,7 +152,11 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
           ],
           const Icon(Icons.check_circle, color: Colors.green, size: 64),
           const SizedBox(height: 16),
-          const Text('Import erfolgreich!'),
+          Text(
+            genState.importedCount == 1
+                ? '1 Frage importiert'
+                : '${genState.importedCount} Fragen importiert',
+          ),
           const SizedBox(height: 24),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -676,16 +680,15 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
       });
 
       ref.invalidate(predictionsStreamProvider);
-      notifier.setImported();
+      notifier.setImported(questionsToImport.length);
 
-      if (context.mounted) {
-        String msg = '${questionsToImport.length} Fragen importiert';
-        if (skippedCount > 0) {
-          msg +=
-              ', $skippedCount ${skippedCount == 1 ? 'Duplikat' : 'Duplikate'} übersprungen';
-        }
+      if (context.mounted && skippedCount > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
+          SnackBar(
+            content: Text(
+              '$skippedCount ${skippedCount == 1 ? 'Duplikat' : 'Duplikate'} übersprungen',
+            ),
+          ),
         );
       }
     } catch (e) {

@@ -34,7 +34,9 @@ Das Antippen einer Vorhersagenkarte öffnet immer die **Detail-Ansicht**. Von do
 
 Jede Vorhersage kann beliebig viele Tags tragen. In der Vorhersagenliste filtert ein horizontaler Chip-Streifen nach Tags. Die Filterung ist OR-verknüpft: Vorhersagen mit mindestens einem der aktiven Tags werden angezeigt.
 
-Der Chip **Überfällig** filtert zusätzlich auf Vorhersagen, deren Deadline in der Vergangenheit liegt und die noch nicht aufgelöst sind. Auf der Übersichtsseite werden die Karten „Offen" und „Ausstehend" rot hervorgehoben, sobald überfällige Einträge existieren.
+Der Chip **Fälligkeit** durchläuft drei Zustände per Antippen: **Fälligkeit** (kein Filter) → **Überfällig** (nur Vorhersagen mit abgelaufener Deadline) → **Nicht überfällig** (nur Vorhersagen ohne abgelaufene Deadline) → zurück zu Fälligkeit. Auf der Übersichtsseite werden die Karten „Offen" und „Ausstehend" rot hervorgehoben, sobald überfällige Einträge existieren.
+
+Sobald die Liste Vorhersagen beider Kategorien enthält, erscheinen die Chips **Epistemisch** und **Aleatorisch** — damit lässt sich auf eine Kategorie einschränken. Ebenso werden Chips für die Typen **Wahrscheinlichkeit**, **Ja/Nein**, **Wahr/Falsch** und **Intervall** eingeblendet, wenn mehr als ein Typ in der Liste vorkommt. Kategorie- und Typ-Filter lassen sich unabhängig voneinander kombinieren; ein aktiver Chip lässt sich durch erneutes Antippen deaktivieren.
 
 ---
 

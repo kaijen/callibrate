@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0-beta.7] - 2026-03-07
+
+### Fixed
+- Factual prediction type missing from type filter chips (#93)
+- Overdue filter chip had no effect on the resolved tab (#93)
+
+## [1.7.0-beta.6] - 2026-03-07
+
+### Added
+- Manual import shows full checkbox list with per-question selection;
+  duplicates are pre-deselected, struck through, and non-selectable (#94)
+- Import button and post-import success card show actual imported
+  question count for both manual and AI import (#94)
+
+## [1.7.0-beta.5] - 2026-03-07
+
+### Added
+- Overdue filter chip cycles through three states: no filter,
+  overdue only, not overdue only
+
+## [1.7.0-beta.4] - 2026-03-07
+
+### Added
+- Category (Epistemisch/Aleatorisch) and prediction type
+  (Wahrscheinlichkeit, Ja/Nein, Intervall) filter chips in the
+  prediction list; chips appear only when relevant (#93)
+
+## [1.7.0-beta.3] - 2026-03-07
+
+### Fixed
+- Back navigation from a Winkler Score prediction detail now returns
+  to the fullscreen chart in its previous zoom state (#91)
+
+## [1.7.0-beta.2] - 2026-03-07
+
+### Added
+- Fullscreen charts support x-axis zoom and pan via pinch gesture;
+  double-tap resets the view; axis labels recalculate for the
+  visible range (#91)
+
 ## [1.6.0] - 2026-03-07
 
 ### Fixed
@@ -674,7 +714,13 @@ breaking changes will follow semver and require a major version bump.
 - Settings screen, tag filter, and clipboard import for question sets
 - GitHub Actions release workflow for tag-triggered APK builds
 
-[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.7...HEAD
+[1.7.0-beta.7]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.6...v1.7.0-beta.7
+[1.7.0-beta.6]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.5...v1.7.0-beta.6
+[1.7.0-beta.5]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.4...v1.7.0-beta.5
+[1.7.0-beta.4]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.3...v1.7.0-beta.4
+[1.7.0-beta.3]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.2...v1.7.0-beta.3
+[1.7.0-beta.2]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.1...v1.7.0-beta.2
 [1.6.0]: https://github.com/kaijen/kailibrate/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/kaijen/kailibrate/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/kaijen/kailibrate/compare/v1.4.1...v1.4.2
