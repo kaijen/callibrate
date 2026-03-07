@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0-beta.6] - 2026-03-07
+
+### Added
+- Manual import shows full checkbox list with per-question selection;
+  duplicates are pre-deselected, struck through, and non-selectable (#94)
+- Import button and post-import success card show actual imported
+  question count for both manual and AI import (#94)
+
 ## [1.7.0-beta.5] - 2026-03-07
 
 ### Added
@@ -700,7 +708,8 @@ breaking changes will follow semver and require a major version bump.
 - Settings screen, tag filter, and clipboard import for question sets
 - GitHub Actions release workflow for tag-triggered APK builds
 
-[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.5...HEAD
+[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.6...HEAD
+[1.7.0-beta.6]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.5...v1.7.0-beta.6
 [1.7.0-beta.5]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.4...v1.7.0-beta.5
 [1.7.0-beta.4]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.3...v1.7.0-beta.4
 [1.7.0-beta.3]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.2...v1.7.0-beta.3
