@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1-beta.1] - 2026-06-01
+
+### Added
+- MIT LICENSE file with full license text; linked from README
+- "Über Mich" page with humanist values and personal stance (#96)
+
 ## [1.7.0] - 2026-03-07
 
 ### Added
@@ -735,7 +741,8 @@ breaking changes will follow semver and require a major version bump.
 - Settings screen, tag filter, and clipboard import for question sets
 - GitHub Actions release workflow for tag-triggered APK builds
 
-[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.7.1-beta.1...HEAD
+[1.7.1-beta.1]: https://github.com/kaijen/kailibrate/compare/v1.7.0...v1.7.1-beta.1
 [1.7.0]: https://github.com/kaijen/kailibrate/compare/v1.6.0...v1.7.0
 [1.7.0-beta.7]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.6...v1.7.0-beta.7
 [1.7.0-beta.6]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.5...v1.7.0-beta.6
