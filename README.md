@@ -189,4 +189,4 @@ Der Release-Workflow dekodiert den Keystore automatisch und signiert das APK dam
 
 ## Lizenz
 
-MIT
+Dieses Projekt steht unter der MIT-Lizenz – siehe [LICENSE](LICENSE).
