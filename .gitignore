@@ -51,3 +51,9 @@ app.*.map.json
 key.properties
 *.jks
 *.keystore
+
+# Claude Code – machine-local (Permissions enthalten Wildcards, nie einchecken)
+.claude/settings.local.json
+
+# Kanban – Laufzeit-Lock (kein versionierbarer Board-State)
+kanban/.lock
