@@ -74,3 +74,5 @@ Der letzte Fall ist der Schlüssel für **Kalibrierungsübungen mit versteckten 
 **Version 1** – Manuell erstellte Fragenkataloge. `category` gilt für alle Fragen der Datei.
 
 **Version 2** – App-eigenes Export-Format. Kategorie und Metadaten können pro Frage abweichen. `resolution`-Felder sind mit ROT13 + Base64 obfuskiert, damit geteilte Kataloge keine Spoiler enthalten. Beim Import dekodiert die App automatisch.
+
+> **Hinweis:** Die Obfuskierung ist reiner Spoiler-Schutz und **kein Sicherheitsfeature** – sie ist trivial umkehrbar. Auflösungs-Notizen (`resolution.notes`) wandern bei Export und Teilen dekodierbar mit. Lege keine sensiblen Inhalte in Notizen ab, wenn du die Datei weitergibst.

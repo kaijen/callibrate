@@ -8,6 +8,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/api_key_service.dart';
 import '../../../core/services/prompt_template_service.dart';
+import '../../../core/utils/obfuscation.dart';
 import '../../../core/utils/import_parser.dart';
 import 'ai_generator_provider.dart';
 
@@ -546,7 +547,7 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
           'deadline': q.deadline!.toIso8601String(),
       };
       if (q.hasResolution) {
-        map['resolution'] = ImportParser.obfuscateResolution({
+        map['resolution'] = obfuscateResolution({
           'outcome': q.resolution!.outcome,
           if (q.resolution!.numericOutcome != null)
             'numericOutcome': q.resolution!.numericOutcome,

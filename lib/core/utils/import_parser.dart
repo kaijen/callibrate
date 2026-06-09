@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:yaml/yaml.dart';
 
+import 'obfuscation.dart';
+
 class ImportResolution {
   final bool outcome;
   final double? numericOutcome;
@@ -277,7 +279,7 @@ class ImportParser {
       final rawRes = qMap['resolution'];
       if (rawRes is String && versionInt >= 2) {
         try {
-          final resMap = _deobfuscateResolution(rawRes);
+          final resMap = deobfuscateResolution(rawRes);
           importResolution = _parseResolutionMap(resMap);
         } catch (_) {
           // ungültige Obfuskierung → ignorieren
@@ -374,29 +376,6 @@ class ImportParser {
       numericOutcome: (map['numericOutcome'] as num?)?.toDouble(),
       notes: map['notes'] as String?,
     );
-  }
-
-  /// Encodes a resolution map as ROT13-then-Base64 string (v2 share format).
-  static String obfuscateResolution(Map<String, dynamic> resolution) {
-    final plain = jsonEncode(resolution);
-    final rot13 = _rot13(plain);
-    return base64Encode(utf8.encode(rot13));
-  }
-
-  /// Base64 dekodieren, dann ROT13 dekodieren.
-  static Map<String, dynamic> _deobfuscateResolution(String obfuscated) {
-    final bytes = base64Decode(obfuscated);
-    final rot13encoded = utf8.decode(bytes);
-    final plain = _rot13(rot13encoded);
-    return jsonDecode(plain) as Map<String, dynamic>;
-  }
-
-  static String _rot13(String input) {
-    return String.fromCharCodes(input.codeUnits.map((c) {
-      if (c >= 65 && c <= 90) return (c - 65 + 13) % 26 + 65;
-      if (c >= 97 && c <= 122) return (c - 97 + 13) % 26 + 97;
-      return c;
-    }));
   }
 
   static Map<String, dynamic> _yamlToMap(dynamic yaml) {
