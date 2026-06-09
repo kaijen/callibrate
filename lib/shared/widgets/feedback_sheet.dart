@@ -85,7 +85,7 @@ class CalibrationFeedbackSheet extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: outcomeColor.withOpacity(0.12),
+                color: outcomeColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(

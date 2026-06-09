@@ -251,6 +251,7 @@ class _EstimateBodyState extends ConsumerState<_EstimateBody> {
           }
         }
       }
+      if (!context.mounted) return;
       await _showFeedback(context, db, effectiveOutcome, probability, resolution);
       if (context.mounted) context.pop();
     } else if (context.mounted) {
@@ -286,6 +287,7 @@ class _EstimateBodyState extends ConsumerState<_EstimateBody> {
     final typeStats = CalibrationStats.compute(toPairs(typeResolved));
 
     final estimate = await db.getEstimateForQuestion(widget.question.id);
+    if (!context.mounted) return;
 
     await showModalBottomSheet<void>(
       context: context,

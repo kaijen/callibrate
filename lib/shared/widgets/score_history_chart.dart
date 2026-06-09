@@ -78,13 +78,13 @@ class ScoreHistoryChart extends StatelessWidget {
               drawVerticalLine: false,
               horizontalInterval: yInterval,
               getDrawingHorizontalLine: (_) => FlLine(
-                color: cs.outline.withOpacity(0.2),
+                color: cs.outline.withValues(alpha: 0.2),
                 strokeWidth: 1,
               ),
             ),
             borderData: FlBorderData(
               show: true,
-              border: Border.all(color: cs.outline.withOpacity(0.4)),
+              border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
             ),
             titlesData: FlTitlesData(
               leftTitles: AxisTitles(
@@ -127,7 +127,7 @@ class ScoreHistoryChart extends StatelessWidget {
               LineChartBarData(
                 spots: [FlSpot(effectiveMinX, refLine), FlSpot(effectiveMaxX, refLine)],
                 isCurved: false,
-                color: cs.error.withOpacity(0.45),
+                color: cs.error.withValues(alpha: 0.45),
                 barWidth: 1,
                 dashArray: [6, 4],
                 dotData: const FlDotData(show: false),
@@ -150,7 +150,7 @@ class ScoreHistoryChart extends StatelessWidget {
                 ),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: lineColor.withOpacity(0.08),
+                  color: lineColor.withValues(alpha: 0.08),
                 ),
               ),
             ],

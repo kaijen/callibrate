@@ -569,25 +569,25 @@ questions:
   - text: Frage aus YAML-Block''';
 
     test('extrahiert JSON aus ```json-Block', () {
-      final content = '```json\n$jsonPayload\n```';
+      const content = '```json\n$jsonPayload\n```';
       final result = ImportParser.parseAutoDetect(content);
       expect(result.questions.first.text, 'Frage aus Code-Block');
     });
 
     test('extrahiert YAML aus ```yaml-Block', () {
-      final content = '```yaml\n$yamlPayload\n```';
+      const content = '```yaml\n$yamlPayload\n```';
       final result = ImportParser.parseAutoDetect(content);
       expect(result.questions.first.text, 'Frage aus YAML-Block');
     });
 
     test('extrahiert JSON aus ```yml-Block', () {
-      final content = '```yml\n$jsonPayload\n```';
+      const content = '```yml\n$jsonPayload\n```';
       final result = ImportParser.parseAutoDetect(content);
       expect(result.questions.first.text, 'Frage aus Code-Block');
     });
 
     test('ignoriert umgebenden LLM-Text und nutzt ersten Code-Block', () {
-      final content = '''
+      const content = '''
 Hier sind deine Kalibrierungsfragen:
 
 ```json

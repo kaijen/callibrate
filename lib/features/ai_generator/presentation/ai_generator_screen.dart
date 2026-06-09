@@ -214,7 +214,7 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
                         ),
                   )
                 : DropdownButtonFormField<String>(
-                    value: genState.selectedModel,
+                    initialValue: genState.selectedModel,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       contentPadding:
@@ -731,7 +731,7 @@ class _TemplateSelector extends ConsumerWidget {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: selectedTemplate?.id,
+                  initialValue: selectedTemplate?.id,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding:
