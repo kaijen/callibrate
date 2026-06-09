@@ -163,6 +163,7 @@ class AppDatabase extends _$AppDatabase {
               'DELETE FROM resolutions WHERE id NOT IN '
               '(SELECT MIN(id) FROM resolutions GROUP BY question_id)',
             );
+            // ignore: experimental_member_use
             await m.alterTable(TableMigration(resolutions));
           }
         },
