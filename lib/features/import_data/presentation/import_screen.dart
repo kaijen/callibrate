@@ -305,12 +305,20 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     });
   }
 
+  /// Größenlimit für Import-Inhalte (Zwischenablage und Datei) –
+  /// verhindert, dass überlange Payloads den Parser überlasten (DoS/OOM).
+  static const _maxImportBytes = 200 * 1024; // 200 KB
+
   Future<void> _pasteFromClipboard(
       BuildContext context, _ImportNotifier notifier) async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final content = data?.text;
     if (content == null || content.trim().isEmpty) {
       notifier.setError('Zwischenablage ist leer oder enthält keinen Text.');
+      return;
+    }
+    if (utf8.encode(content).length > _maxImportBytes) {
+      notifier.setError('Inhalt zu groß (max. 200 KB).');
       return;
     }
     try {
@@ -335,6 +343,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       final file = result.files.first;
       if (file.bytes == null) {
         notifier.setError('Datei konnte nicht gelesen werden.');
+        return;
+      }
+      if (file.bytes!.length > _maxImportBytes) {
+        notifier.setError('Datei zu groß (max. 200 KB).');
         return;
       }
 
