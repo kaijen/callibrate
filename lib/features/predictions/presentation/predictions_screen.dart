@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/services/notification_service.dart';
 import 'prediction_card.dart';
 
 enum FilterTab { all, pending, needsResolution, resolved }
@@ -271,7 +272,11 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
     if (confirmed != true || !mounted) return;
 
     final db = ref.read(appDatabaseProvider);
-    await db.deleteQuestions(_selectedIds.toList());
+    final ids = _selectedIds.toList();
+    await db.deleteQuestions(ids);
+    for (final id in ids) {
+      await NotificationService.instance.cancelNotificationsForQuestion(id);
+    }
     setState(() => _selectedIds.clear());
   }
 

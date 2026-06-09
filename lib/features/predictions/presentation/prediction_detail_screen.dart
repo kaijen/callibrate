@@ -67,6 +67,8 @@ class _PredictionDetailScreenState
     if (confirmed != true || !mounted) return;
     final db = ref.read(appDatabaseProvider);
     await db.deleteQuestions([widget.questionId]);
+    await NotificationService.instance
+        .cancelNotificationsForQuestion(widget.questionId);
     if (mounted) context.pop();
   }
 

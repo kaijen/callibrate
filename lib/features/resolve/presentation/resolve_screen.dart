@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/utils/calibration_math.dart';
 import '../../../core/utils/format_utils.dart';
 import '../../../shared/widgets/feedback_sheet.dart';
@@ -43,6 +44,8 @@ class ResolveScreen extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
     await db.deleteQuestions([questionId]);
+    await NotificationService.instance
+        .cancelNotificationsForQuestion(questionId);
     if (context.mounted) context.pop();
   }
 
@@ -128,6 +131,9 @@ class _ResolveBodyState extends ConsumerState<_ResolveBody> {
           numericOutcome: drift.Value(numericOutcome),
         ),
       );
+      // Aufgelöste Vorhersagen brauchen keine Deadline-Erinnerung mehr.
+      await NotificationService.instance
+          .cancelNotificationsForQuestion(widget.questionId);
       if (mounted) {
         await _showFeedback(outcome);
         if (mounted) context.pop();
