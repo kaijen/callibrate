@@ -84,6 +84,39 @@ void main() {
     });
   });
 
+  group('CalibrationStats.computeHistory()', () {
+    test('returns empty list for empty input', () {
+      expect(CalibrationStats.computeHistory([]), isEmpty);
+    });
+
+    test('computes cumulative averages per estimate', () {
+      final history = CalibrationStats.computeHistory([
+        (probability: 0.5, outcome: 1.0), // brier 0.25
+        (probability: 1.0, outcome: 1.0), // brier 0 → avg 0.125
+      ]);
+      expect(history.length, 2);
+      expect(history[0].index, 1);
+      expect(history[0].brierScore, closeTo(0.25, 1e-9));
+      expect(history[1].index, 2);
+      expect(history[1].brierScore, closeTo(0.125, 1e-9));
+    });
+
+    test('log loss history matches CalibrationStats.compute at each prefix',
+        () {
+      final pairs = [
+        (probability: 0.7, outcome: 1.0),
+        (probability: 0.6, outcome: 0.0),
+        (probability: 0.9, outcome: 1.0),
+      ];
+      final history = CalibrationStats.computeHistory(pairs);
+      for (var i = 0; i < pairs.length; i++) {
+        final prefixStats = CalibrationStats.compute(pairs.sublist(0, i + 1));
+        expect(history[i].brierScore, closeTo(prefixStats.brierScore, 1e-9));
+        expect(history[i].logLoss, closeTo(prefixStats.logLoss, 1e-9));
+      }
+    });
+  });
+
   group('CalibrationStats.empty()', () {
     test('returns zero values', () {
       final stats = CalibrationStats.empty();

@@ -115,6 +115,9 @@ class PredictionView {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Für Tests: erlaubt eine In-Memory-Datenbank (NativeDatabase.memory()).
+  AppDatabase.forTesting(super.e);
+
   @override
   int get schemaVersion => 6;
 
