@@ -41,6 +41,22 @@ class EstimateFormState {
 class EstimateFormNotifier extends StateNotifier<EstimateFormState> {
   EstimateFormNotifier() : super(const EstimateFormState());
 
+  /// Befüllt das Formular mit den Werten einer bestehenden Schätzung,
+  /// damit Bearbeiten nicht wieder bei den Defaults startet.
+  void initFrom({
+    bool? binaryChoice,
+    double? confidenceLevel,
+    String lowerBoundText = '',
+    String upperBoundText = '',
+  }) {
+    state = EstimateFormState(
+      binaryChoice: binaryChoice,
+      confidenceLevel: confidenceLevel ?? 0.9,
+      lowerBoundText: lowerBoundText,
+      upperBoundText: upperBoundText,
+    );
+  }
+
   void setBinaryChoice(bool? v) =>
       state = state.copyWith(binaryChoice: v ?? _sentinel);
   void setConfidence(double v) => state = state.copyWith(confidenceLevel: v);
