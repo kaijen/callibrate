@@ -435,7 +435,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         );
       });
 
-      ref.invalidate(predictionsStreamProvider);
       notifier.setImported(questionsToImport.length);
     } catch (e) {
       notifier.setError('Import fehlgeschlagen: $e');

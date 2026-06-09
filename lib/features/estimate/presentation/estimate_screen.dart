@@ -232,7 +232,6 @@ class _EstimateBodyState extends ConsumerState<_EstimateBody> {
         unit: unit,
       ),
     );
-    ref.invalidate(predictionsStreamProvider);
 
     final resolution = await db.getResolutionForQuestion(widget.question.id);
     if (resolution != null && context.mounted) {

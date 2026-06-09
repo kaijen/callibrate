@@ -290,7 +290,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await BackupService.restoreBackup(
           db: db, backupJson: backupJson, password: password);
 
-      ref.invalidate(predictionsStreamProvider);
       await _loadAiSettings();
 
       if (mounted) {
@@ -377,11 +376,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         tags: tags,
         onDelete: (tag) async {
           await db.deleteTagGlobally(tag);
-          ref.invalidate(predictionsStreamProvider);
         },
         onRename: (oldTag, newTag) async {
           await db.renameTagGlobally(oldTag, newTag);
-          ref.invalidate(predictionsStreamProvider);
         },
       ),
     );
@@ -425,7 +422,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final db = ref.read(appDatabaseProvider);
     await db.resetDatabase();
-    ref.invalidate(predictionsStreamProvider);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -272,7 +272,6 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
 
     final db = ref.read(appDatabaseProvider);
     await db.deleteQuestions(_selectedIds.toList());
-    ref.invalidate(predictionsStreamProvider);
     setState(() => _selectedIds.clear());
   }
 
@@ -298,7 +297,6 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
     for (final id in _selectedIds.toList()) {
       await db.updateQuestionTags(id, newTags);
     }
-    ref.invalidate(predictionsStreamProvider);
     setState(() => _selectedIds.clear());
   }
 

@@ -173,7 +173,6 @@ class _NewPredictionScreenState extends ConsumerState<NewPredictionScreen> {
         );
       }
 
-      ref.invalidate(predictionsStreamProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Vorhersage erstellt.')),

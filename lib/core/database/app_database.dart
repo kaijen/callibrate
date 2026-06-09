@@ -274,36 +274,29 @@ class AppDatabase extends _$AppDatabase {
 
   // --- Combined queries ---
 
-  Future<List<PredictionView>> getAllPredictionViews() async {
-    final qs = await getAllQuestions();
-    final result = <PredictionView>[];
-    for (final q in qs) {
-      final estimate = await getEstimateForQuestion(q.id);
-      final resolution = await getResolutionForQuestion(q.id);
-      result.add(PredictionView(
-        question: q,
-        estimate: estimate,
-        resolution: resolution,
-      ));
-    }
-    return result;
-  }
+  JoinedSelectStatement<HasResultSet, dynamic> _predictionViewQuery() =>
+      select(questions).join([
+        leftOuterJoin(estimates, estimates.questionId.equalsExp(questions.id)),
+        leftOuterJoin(
+            resolutions, resolutions.questionId.equalsExp(questions.id)),
+      ]);
 
-  Stream<List<PredictionView>> watchAllPredictionViews() {
-    return watchAllQuestions().asyncMap((qs) async {
-      final result = <PredictionView>[];
-      for (final q in qs) {
-        final estimate = await getEstimateForQuestion(q.id);
-        final resolution = await getResolutionForQuestion(q.id);
-        result.add(PredictionView(
-          question: q,
-          estimate: estimate,
-          resolution: resolution,
-        ));
-      }
-      return result;
-    });
-  }
+  List<PredictionView> _mapPredictionViewRows(List<TypedResult> rows) => rows
+      .map((row) => PredictionView(
+            question: row.readTable(questions),
+            estimate: row.readTableOrNull(estimates),
+            resolution: row.readTableOrNull(resolutions),
+          ))
+      .toList();
+
+  Future<List<PredictionView>> getAllPredictionViews() async =>
+      _mapPredictionViewRows(await _predictionViewQuery().get());
+
+  /// Beobachtet Questions, Estimates und Resolutions über einen JOIN –
+  /// Schreibzugriffe auf alle drei Tabellen lösen eine Emission aus, ein
+  /// manuelles Invalidieren des Providers ist nicht nötig.
+  Stream<List<PredictionView>> watchAllPredictionViews() =>
+      _predictionViewQuery().watch().map(_mapPredictionViewRows);
 
   Future<List<PredictionView>> getResolvedPredictionViews(
       {String? category, List<String>? tags}) async {

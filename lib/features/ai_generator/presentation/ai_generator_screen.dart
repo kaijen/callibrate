@@ -679,7 +679,6 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
         );
       });
 
-      ref.invalidate(predictionsStreamProvider);
       notifier.setImported(questionsToImport.length);
 
       if (context.mounted && skippedCount > 0) {

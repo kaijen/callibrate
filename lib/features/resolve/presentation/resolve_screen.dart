@@ -43,7 +43,6 @@ class ResolveScreen extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
     await db.deleteQuestions([questionId]);
-    ref.invalidate(predictionsStreamProvider);
     if (context.mounted) context.pop();
   }
 
@@ -129,7 +128,6 @@ class _ResolveBodyState extends ConsumerState<_ResolveBody> {
           numericOutcome: drift.Value(numericOutcome),
         ),
       );
-      ref.invalidate(predictionsStreamProvider);
       if (mounted) {
         await _showFeedback(outcome);
         if (mounted) context.pop();
