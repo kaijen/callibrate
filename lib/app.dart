@@ -16,7 +16,30 @@ import 'features/settings/presentation/settings_screen.dart';
 import 'features/ai_generator/presentation/ai_generator_screen.dart';
 import 'shared/theme/app_theme.dart';
 
+/// Leitet auf die Startseite um, wenn der :id-Pfadparameter kein gültiger
+/// Integer ist (z. B. defekter Deep-Link) – statt mit int.parse zu crashen.
+String? _redirectInvalidId(GoRouterState state) =>
+    int.tryParse(state.pathParameters['id'] ?? '') == null ? '/' : null;
+
 final _router = GoRouter(
+  errorBuilder: (_, state) => Scaffold(
+    appBar: AppBar(title: const Text('Seite nicht gefunden')),
+    body: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Unbekannte Adresse: ${state.uri}'),
+          const SizedBox(height: 16),
+          Builder(
+            builder: (context) => FilledButton(
+              onPressed: () => context.go('/'),
+              child: const Text('Zur Startseite'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
   routes: [
     GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
     GoRoute(
@@ -33,16 +56,19 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/estimate/:id',
+      redirect: (_, state) => _redirectInvalidId(state),
       builder: (_, state) =>
           EstimateScreen(questionId: int.parse(state.pathParameters['id']!)),
     ),
     GoRoute(
       path: '/resolve/:id',
+      redirect: (_, state) => _redirectInvalidId(state),
       builder: (_, state) =>
           ResolveScreen(questionId: int.parse(state.pathParameters['id']!)),
     ),
     GoRoute(
       path: '/prediction/:id',
+      redirect: (_, state) => _redirectInvalidId(state),
       builder: (_, state) => PredictionDetailScreen(
           questionId: int.parse(state.pathParameters['id']!)),
     ),
