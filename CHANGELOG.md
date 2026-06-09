@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Deadline reminders were scheduled in UTC instead of the device time
+  zone; the 9:00 reminder now fires at 9:00 local time (#103)
 - Winkler score now uses the error tolerance (α = 1 − confidence level)
   instead of the confidence level itself, matching the standard interval
   score (Gneiting & Raftery). Missed intervals with high confidence are
