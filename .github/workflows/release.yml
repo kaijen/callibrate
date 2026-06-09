@@ -34,6 +34,20 @@ jobs:
       - name: Code generieren (Drift)
         run: dart run build_runner build --delete-conflicting-outputs
 
+      # "flutter pub audit" existiert nicht; OSV-Scanner prüft pubspec.lock
+      # gegen die OSV-Datenbank. Zunächst nur warnend (continue-on-error).
+      - name: Abhängigkeiten auditieren (OSV-Scanner)
+        continue-on-error: true
+        run: |
+          curl -sSfL -o osv-scanner \
+            https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64
+          chmod +x osv-scanner
+          ./osv-scanner scan --lockfile=pubspec.lock
+
+      - name: Veraltete Abhängigkeiten loggen
+        continue-on-error: true
+        run: flutter pub outdated
+
       - name: Keystore bereitstellen
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\n' | base64 --decode \
