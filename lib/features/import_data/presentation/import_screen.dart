@@ -382,7 +382,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           );
 
           if (q.hasResolution) {
-            await db.insertResolution(
+            await db.upsertResolution(
               ResolutionsCompanion.insert(
                 questionId: id,
                 outcome: q.resolution!.outcome,

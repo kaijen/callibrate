@@ -119,7 +119,7 @@ class _ResolveBodyState extends ConsumerState<_ResolveBody> {
 
     final db = ref.read(appDatabaseProvider);
     try {
-      await db.insertResolution(
+      await db.upsertResolution(
         ResolutionsCompanion.insert(
           questionId: widget.questionId,
           outcome: outcome,

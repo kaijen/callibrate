@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Resolving a question twice (e.g. by double-tapping) could create
+  duplicate resolutions that permanently crashed the detail and
+  statistics screens for that question. Resolutions are now unique per
+  question (schema v6 deduplicates existing data) and resolving again
+  updates the existing entry (#108)
 - Restoring a backup is now atomic: if the backup file turns out to be
   corrupt mid-restore, the existing data is kept instead of being lost
   (#105)

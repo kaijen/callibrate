@@ -58,6 +58,13 @@ class Resolutions extends Table {
       dateTime().withDefault(currentDateAndTime)();
   // v2: tatsächlicher Messwert für interval-Typ
   RealColumn get numericOutcome => real().nullable()();
+
+  // v6: max. eine Auflösung pro Frage – Duplikate ließen
+  // getSingleOrNull() mit einem StateError crashen.
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {questionId}
+      ];
 }
 
 class ImportBatches extends Table {
@@ -107,7 +114,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -146,6 +153,17 @@ class AppDatabase extends _$AppDatabase {
               "UPDATE questions SET prediction_type = 'factual' "
               "WHERE prediction_type = 'probability' AND category = 'epistemic'",
             );
+          }
+          if (from < 6) {
+            // v6: Unique-Constraint auf resolutions.question_id. Vorhandene
+            // Duplikate (z. B. durch Doppel-Tap beim Auflösen) deduplizieren –
+            // die jeweils älteste Auflösung bleibt erhalten – und die Tabelle
+            // anschließend mit dem neuen Constraint neu aufbauen.
+            await m.database.customStatement(
+              'DELETE FROM resolutions WHERE id NOT IN '
+              '(SELECT MIN(id) FROM resolutions GROUP BY question_id)',
+            );
+            await m.alterTable(TableMigration(resolutions));
           }
         },
       );
@@ -240,8 +258,8 @@ class AppDatabase extends _$AppDatabase {
       (select(resolutions)..where((r) => r.questionId.equals(questionId)))
           .getSingleOrNull();
 
-  Future<int> insertResolution(ResolutionsCompanion r) =>
-      into(resolutions).insert(r);
+  Future<int> upsertResolution(ResolutionsCompanion r) =>
+      into(resolutions).insertOnConflictUpdate(r);
 
   Future<void> updateResolutionOutcome(int questionId, bool outcome) =>
       (update(resolutions)..where((r) => r.questionId.equals(questionId)))
@@ -493,7 +511,7 @@ class AppDatabase extends _$AppDatabase {
                 'Auflösung zu Frage $i im Backup hat kein gültiges '
                 '"outcome".');
           }
-          await insertResolution(ResolutionsCompanion.insert(
+          await upsertResolution(ResolutionsCompanion.insert(
             questionId: id,
             outcome: outcome,
             notes: Value(resMap['notes'] as String?),

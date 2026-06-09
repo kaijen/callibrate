@@ -627,7 +627,7 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
           );
 
           if (q.hasResolution) {
-            await db.insertResolution(
+            await db.upsertResolution(
               ResolutionsCompanion.insert(
                 questionId: id,
                 outcome: q.resolution!.outcome,
