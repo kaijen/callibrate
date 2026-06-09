@@ -204,22 +204,23 @@ void main() {
 
     test('bin count accumulates correctly', () {
       final pairs = [
-        (probability: 0.25, outcome: 1.0),
-        (probability: 0.28, outcome: 0.0),
-        (probability: 0.22, outcome: 1.0),
+        (probability: 0.72, outcome: 1.0),
+        (probability: 0.7, outcome: 0.0),
+        (probability: 0.68, outcome: 1.0),
       ];
       final stats = CalibrationStats.compute(pairs);
-      // All in bin 20–30%
+      // All snap to the 70% point
       expect(stats.bins.length, 1);
+      expect(stats.bins.first.binCenter, closeTo(0.7, 1e-9));
       expect(stats.bins.first.count, 3);
       expect(stats.bins.first.hitRate, closeTo(2 / 3, 0.001));
     });
 
     test('multiple bins are in ascending order of bin center', () {
       final pairs = [
-        (probability: 0.15, outcome: 1.0),
-        (probability: 0.55, outcome: 0.0),
-        (probability: 0.85, outcome: 1.0),
+        (probability: 0.55, outcome: 1.0),
+        (probability: 0.75, outcome: 0.0),
+        (probability: 0.95, outcome: 1.0),
       ];
       final stats = CalibrationStats.compute(pairs);
       expect(stats.bins.length, 3);
@@ -227,6 +228,31 @@ void main() {
         expect(stats.bins[i].binCenter,
             greaterThan(stats.bins[i - 1].binCenter));
       }
+    });
+
+    test('legacy probabilities below 50% are mirrored into the upper half',
+        () {
+      // p=0.2 with outcome 0 is the same statement as p=0.8 with outcome 1.
+      final pairs = [
+        (probability: 0.2, outcome: 0.0),
+      ];
+      final stats = CalibrationStats.compute(pairs);
+      expect(stats.bins.length, 1);
+      expect(stats.bins.first.binCenter, closeTo(0.8, 1e-9));
+      expect(stats.bins.first.hitRate, 1.0);
+    });
+
+    test('mirrored values share the bin with their upper-half counterpart',
+        () {
+      final pairs = [
+        (probability: 0.25, outcome: 0.0), // ≙ 75% eingetreten
+        (probability: 0.75, outcome: 1.0),
+      ];
+      final stats = CalibrationStats.compute(pairs);
+      expect(stats.bins.length, 1);
+      expect(stats.bins.first.binCenter, closeTo(0.75, 1e-9));
+      expect(stats.bins.first.count, 2);
+      expect(stats.bins.first.hitRate, 1.0);
     });
   });
 }

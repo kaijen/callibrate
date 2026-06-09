@@ -194,11 +194,20 @@ class CalibrationStats {
     }
     ll = -ll / n;
 
-    // Calibration points at 5% steps: 50%, 55%, …, 100% (11 points)
+    // Calibration points at 5% steps: 50%, 55%, …, 100% (11 points).
+    // Legacy-Wahrscheinlichkeiten < 50 % (alter 'probability'-Typ) werden
+    // gespiegelt (p → 1−p, outcome → 1−outcome) statt in den 50 %-Bin
+    // geklemmt – sonst verzerren sie den untersten Punkt der Kurve.
     final binData = List.generate(11, (_) => <double>[]);
     for (final p in pairs) {
-      final binIdx = ((p.probability - 0.5) * 20).round().clamp(0, 10);
-      binData[binIdx].add(p.outcome);
+      var prob = p.probability;
+      var out = p.outcome;
+      if (prob < 0.5) {
+        prob = 1 - prob;
+        out = 1 - out;
+      }
+      final binIdx = ((prob - 0.5) * 20).round().clamp(0, 10);
+      binData[binIdx].add(out);
     }
 
     final bins = <CalibrationBin>[];

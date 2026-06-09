@@ -46,10 +46,10 @@ Je enger das Intervall und je häufiger der tatsächliche Wert darin liegt, dest
 
 ## Kalibrierungskurve
 
-Schätzungen werden in 10-%-Bins gruppiert (50–60 %, 60–70 %, …). Pro Bin zeigt die Kurve:
+Schätzungen werden auf 5-%-Punkte zwischen 50 % und 100 % gerastet (50 %, 55 %, …, 100 %); jeder Wert zählt zum nächstgelegenen Punkt. Pro Punkt zeigt die Kurve:
 
-- **X-Achse** – Mitte des Bins (erwartete Trefferquote)
-- **Y-Achse** – tatsächliche Trefferquote in diesem Bin
+- **X-Achse** – Konfidenzpunkt (erwartete Trefferquote)
+- **Y-Achse** – tatsächliche Trefferquote an diesem Punkt
 
 Eine perfekt kalibrierte Person liegt auf der Diagonale: Wer 70 % sagt, hat in 70 % der Fälle recht.
 
