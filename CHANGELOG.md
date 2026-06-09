@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Winkler score now uses the error tolerance (α = 1 − confidence level)
+  instead of the confidence level itself, matching the standard interval
+  score (Gneiting & Raftery). Missed intervals with high confidence are
+  now penalized harder, not milder. Displayed historical Winkler values
+  change accordingly; no data migration is required (#102)
+
 ## [1.7.1-beta.1] - 2026-06-01
 
 ### Added

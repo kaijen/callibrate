@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -448,10 +449,12 @@ class _HistorySectionState extends State<_HistorySection> {
           r.numericOutcome == null) {
         continue;
       }
+      // α ist die Fehlertoleranz (1 − Konfidenzniveau); bei 100 % Konfidenz
+      // auf 0.01 begrenzt, um Division durch 0 zu vermeiden.
       winklerInputs.add((
         lower: e.lowerBound!,
         upper: e.upperBound!,
-        alpha: e.confidenceLevel,
+        alpha: max(1 - e.confidenceLevel, 0.01),
         actual: r.numericOutcome!,
         questionId: p.question.id,
       ));

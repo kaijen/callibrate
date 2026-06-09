@@ -1,5 +1,11 @@
 import 'dart:math';
 
+/// Winkler/Interval-Score nach Gneiting & Raftery.
+///
+/// `alpha` ist die **Fehlertoleranz** des Intervalls, also
+/// `1 − Konfidenzniveau` (z. B. 0.1 bei einem 90 %-Intervall).
+/// Verfehlte Intervalle werden mit `2·Distanz/α` bestraft – je höher die
+/// Konfidenz (kleineres α), desto härter die Strafe bei einem Miss.
 class WinklerStats {
   final double score;
   final int count;
