@@ -614,6 +614,88 @@ $jsonPayload
     });
   });
 
+  group('Validierung von Wertebereichen und Typen', () {
+    ImportFile parseJson(Map<String, dynamic> data) =>
+        ImportParser.parse(jsonEncode(data), 'test.json');
+
+    Map<String, dynamic> fileWith(Map<String, dynamic> question) => {
+          'version': 1,
+          'category': 'aleatory',
+          'questions': [question],
+        };
+
+    test('version als String wird akzeptiert', () {
+      final result = parseJson({
+        'version': '1',
+        'category': 'aleatory',
+        'questions': [
+          {'text': 'Frage?'},
+        ],
+      });
+      expect(result.version, 1);
+    });
+
+    test('nicht-numerische version wirft verständliche Exception', () {
+      expect(
+        () => parseJson({
+          'version': 'eins',
+          'category': 'aleatory',
+          'questions': [],
+        }),
+        throwsA(isA<ImportParseException>().having(
+            (e) => e.message, 'message', contains('version'))),
+      );
+    });
+
+    test('probability außerhalb 0–1 wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({'text': 'F?', 'probability': -2})),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('confidenceLevel außerhalb 0–1 wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({'text': 'F?', 'confidenceLevel': 7})),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('lowerBound >= upperBound wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({
+          'text': 'F?',
+          'predictionType': 'interval',
+          'lowerBound': 45,
+          'upperBound': 20,
+        })),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('nicht-numerische Schätzfelder werfen verständliche Exception', () {
+      expect(
+        () => parseJson(fileWith({'text': 'F?', 'confidenceLevel': 'hoch'})),
+        throwsA(isA<ImportParseException>().having(
+            (e) => e.message, 'message', contains('confidenceLevel'))),
+      );
+    });
+
+    test('numerische Strings werden konvertiert', () {
+      final result =
+          parseJson(fileWith({'text': 'F?', 'probability': '0.7'}));
+      expect(result.questions.single.probability, closeTo(0.7, 1e-9));
+    });
+
+    test('Dateiendung wird case-insensitiv geprüft', () {
+      final result = ImportParser.parse(
+        jsonEncode(fileWith({'text': 'F?'})),
+        'FRAGEN.JSON',
+      );
+      expect(result.questions, hasLength(1));
+    });
+  });
+
   group('probability-Feld wird als Schätzung abgeleitet', () {
     ImportFile parseJson(Map<String, dynamic> data) =>
         ImportParser.parse(jsonEncode(data), 'test.json');

@@ -82,10 +82,11 @@ class ImportParser {
   static ImportFile parse(String content, String filename) {
     Map<String, dynamic> data;
 
-    if (filename.endsWith('.yaml') || filename.endsWith('.yml')) {
+    final lowerName = filename.toLowerCase();
+    if (lowerName.endsWith('.yaml') || lowerName.endsWith('.yml')) {
       final yaml = loadYaml(content);
       data = _yamlToMap(yaml);
-    } else if (filename.endsWith('.json')) {
+    } else if (lowerName.endsWith('.json')) {
       data = jsonDecode(content) as Map<String, dynamic>;
     } else {
       throw ImportParseException(
@@ -164,7 +165,12 @@ class ImportParser {
     if (version == null) {
       throw const ImportParseException('Pflichtfeld "version" fehlt.');
     }
-    final versionInt = (version as num).toInt();
+    final versionInt =
+        version is num ? version.toInt() : int.tryParse(version.toString());
+    if (versionInt == null) {
+      throw const ImportParseException(
+          'Pflichtfeld "version" muss eine Zahl sein.');
+    }
 
     // v1: top-level category Pflichtfeld; v2 (App-Export): category pro Frage
     final topLevelCategory = data['category'] as String?;
@@ -236,11 +242,12 @@ class ImportParser {
         final rawEstimate = qMap['estimate'];
         if (rawEstimate is Map) {
           final est = Map<String, dynamic>.from(rawEstimate);
-          probability = (est['probability'] as num?)?.toDouble();
+          probability = _readDouble(est['probability'], i, 'probability');
           binaryChoice = est['binaryChoice'] as bool?;
-          confidenceLevel = (est['confidenceLevel'] as num?)?.toDouble();
-          lowerBound = (est['lowerBound'] as num?)?.toDouble();
-          upperBound = (est['upperBound'] as num?)?.toDouble();
+          confidenceLevel =
+              _readDouble(est['confidenceLevel'], i, 'confidenceLevel');
+          lowerBound = _readDouble(est['lowerBound'], i, 'lowerBound');
+          upperBound = _readDouble(est['upperBound'], i, 'upperBound');
           unit = est['unit'] as String?;
         }
         // Fallback: unit auch auf Fragenebene akzeptieren
@@ -248,13 +255,22 @@ class ImportParser {
       } else {
         questionCategory = null;
         answer = qMap['answer'] as bool?;
-        probability = (qMap['probability'] as num?)?.toDouble();
+        probability = _readDouble(qMap['probability'], i, 'probability');
         binaryChoice = qMap['binaryChoice'] as bool?;
-        confidenceLevel = (qMap['confidenceLevel'] as num?)?.toDouble();
-        lowerBound = (qMap['lowerBound'] as num?)?.toDouble();
-        upperBound = (qMap['upperBound'] as num?)?.toDouble();
+        confidenceLevel =
+            _readDouble(qMap['confidenceLevel'], i, 'confidenceLevel');
+        lowerBound = _readDouble(qMap['lowerBound'], i, 'lowerBound');
+        upperBound = _readDouble(qMap['upperBound'], i, 'upperBound');
         unit = qMap['unit'] as String?;
       }
+
+      _validateRanges(
+        index: i,
+        probability: probability,
+        confidenceLevel: confidenceLevel,
+        lowerBound: lowerBound,
+        upperBound: upperBound,
+      );
 
       // Resolution: plain Map (v1 und v2) oder obfuskierter String (v2-Export)
       ImportResolution? importResolution;
@@ -312,6 +328,44 @@ class ImportParser {
       source: data['source'] as String?,
       questions: questions,
     );
+  }
+
+  /// Liest einen optionalen Zahlenwert robust (num oder numerischer String).
+  /// Wirft eine [ImportParseException] mit Fragen-Index, wenn der Wert
+  /// vorhanden, aber keine Zahl ist.
+  static double? _readDouble(dynamic value, int index, String field) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    final parsed = num.tryParse(value.toString());
+    if (parsed == null) {
+      throw ImportParseException(
+          'Frage $index: "$field" muss eine Zahl sein.');
+    }
+    return parsed.toDouble();
+  }
+
+  /// Prüft Wertebereiche der Schätzfelder, damit ungültige Werte
+  /// (z. B. confidenceLevel: 7) nicht Statistik und UI verfälschen.
+  static void _validateRanges({
+    required int index,
+    double? probability,
+    double? confidenceLevel,
+    double? lowerBound,
+    double? upperBound,
+  }) {
+    if (probability != null && (probability < 0 || probability > 1)) {
+      throw ImportParseException(
+          'Frage $index: "probability" muss zwischen 0 und 1 liegen.');
+    }
+    if (confidenceLevel != null &&
+        (confidenceLevel < 0 || confidenceLevel > 1)) {
+      throw ImportParseException(
+          'Frage $index: "confidenceLevel" muss zwischen 0 und 1 liegen.');
+    }
+    if (lowerBound != null && upperBound != null && lowerBound >= upperBound) {
+      throw ImportParseException(
+          'Frage $index: "lowerBound" muss kleiner als "upperBound" sein.');
+    }
   }
 
   static ImportResolution _parseResolutionMap(Map<String, dynamic> map) {
