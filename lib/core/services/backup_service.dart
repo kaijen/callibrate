@@ -233,7 +233,13 @@ class BackupService {
     if (dbData == null) {
       throw const BackupException('DB-Daten fehlen im Backup.');
     }
-    await db.restoreFromBackup(dbData);
+    try {
+      await db.restoreFromBackup(dbData);
+    } on FormatException catch (e) {
+      // Die Transaktion in restoreFromBackup wurde zurückgerollt,
+      // der alte Datenbestand ist unverändert.
+      throw BackupException('Backup-Daten ungültig: ${e.message}');
+    }
 
     final config = payload['config'] as Map<String, dynamic>? ?? {};
 

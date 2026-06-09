@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Restoring a backup is now atomic: if the backup file turns out to be
+  corrupt mid-restore, the existing data is kept instead of being lost
+  (#105)
 - Brier score on the dashboard and in the feedback sheet now uses the
   same direction-based semantics as the statistics screen; the three
   displays no longer contradict each other (#104)

@@ -422,20 +422,38 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Restores all questions, estimates, and resolutions from backup data.
+  ///
+  /// Löschen und Wiederherstellen laufen in **einer** Transaktion: Schlägt
+  /// ein Insert fehl (defektes oder manipuliertes Backup), rollt Drift alles
+  /// zurück und der alte Datenbestand bleibt erhalten. Ungültige Pflichtfelder
+  /// werfen eine [FormatException] mit verständlicher Ursache.
   Future<void> restoreFromBackup(Map<String, dynamic> backup) async {
-    await resetDatabase();
-    final questions = (backup['questions'] as List?) ?? [];
+    final questionList = (backup['questions'] as List?) ?? [];
     await transaction(() async {
-      for (final q in questions) {
-        final qMap = q as Map<String, dynamic>;
+      await delete(resolutions).go();
+      await delete(estimates).go();
+      await delete(importBatches).go();
+      await delete(questions).go();
+
+      for (var i = 0; i < questionList.length; i++) {
+        final q = questionList[i];
+        if (q is! Map) {
+          throw FormatException('Frage $i im Backup ist kein Objekt.');
+        }
+        final qMap = Map<String, dynamic>.from(q);
+        final text = qMap['text'];
+        if (text is! String || text.trim().isEmpty) {
+          throw FormatException(
+              'Frage $i im Backup hat kein gültiges "text"-Feld.');
+        }
         final id = await insertQuestion(QuestionsCompanion.insert(
-          questionText: qMap['text'] as String,
+          questionText: text,
           category: qMap['category'] as String? ?? 'epistemic',
           tags: Value(jsonEncode(qMap['tags'] ?? [])),
           source: Value(qMap['source'] as String?),
           hasKnownAnswer: Value(qMap['hasKnownAnswer'] as bool? ?? false),
           knownAnswer: Value(qMap['knownAnswer'] as bool?),
-          deadline: Value(qMap['deadline'] != null
+          deadline: Value(qMap['deadline'] is String
               ? DateTime.tryParse(qMap['deadline'] as String)
               : null),
           predictionType:
@@ -443,28 +461,42 @@ class AppDatabase extends _$AppDatabase {
           unit: Value(qMap['unit'] as String?),
         ));
 
-        final est = qMap['estimate'] as Map<String, dynamic>?;
-        if (est != null) {
+        final est = qMap['estimate'];
+        if (est is Map) {
+          final estMap = Map<String, dynamic>.from(est);
+          final probability = estMap['probability'];
+          if (probability is! num) {
+            throw FormatException(
+                'Schätzung zu Frage $i im Backup hat keine gültige '
+                '"probability".');
+          }
           await upsertEstimate(EstimatesCompanion.insert(
             questionId: id,
-            probability: (est['probability'] as num).toDouble(),
+            probability: probability.toDouble(),
             confidenceLevel:
-                Value((est['confidenceLevel'] as num?)?.toDouble() ?? 0.9),
-            binaryChoice: Value(est['binaryChoice'] as bool?),
-            lowerBound: Value((est['lowerBound'] as num?)?.toDouble()),
-            upperBound: Value((est['upperBound'] as num?)?.toDouble()),
-            unit: Value(est['unit'] as String?),
+                Value((estMap['confidenceLevel'] as num?)?.toDouble() ?? 0.9),
+            binaryChoice: Value(estMap['binaryChoice'] as bool?),
+            lowerBound: Value((estMap['lowerBound'] as num?)?.toDouble()),
+            upperBound: Value((estMap['upperBound'] as num?)?.toDouble()),
+            unit: Value(estMap['unit'] as String?),
           ));
         }
 
-        final res = qMap['resolution'] as Map<String, dynamic>?;
-        if (res != null) {
+        final res = qMap['resolution'];
+        if (res is Map) {
+          final resMap = Map<String, dynamic>.from(res);
+          final outcome = resMap['outcome'];
+          if (outcome is! bool) {
+            throw FormatException(
+                'Auflösung zu Frage $i im Backup hat kein gültiges '
+                '"outcome".');
+          }
           await insertResolution(ResolutionsCompanion.insert(
             questionId: id,
-            outcome: res['outcome'] as bool,
-            notes: Value(res['notes'] as String?),
+            outcome: outcome,
+            notes: Value(resMap['notes'] as String?),
             numericOutcome:
-                Value((res['numericOutcome'] as num?)?.toDouble()),
+                Value((resMap['numericOutcome'] as num?)?.toDouble()),
           ));
         }
       }
