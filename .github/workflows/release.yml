@@ -75,11 +75,22 @@ jobs:
           mv build/app/outputs/flutter-apk/app-release.apk \
              build/app/outputs/flutter-apk/kailibrate-${{ github.ref_name }}.apk
 
+      - name: SBOM erstellen (Syft, CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: kailibrate-${{ github.ref_name }}.sbom.cdx.json
+          artifact-name: kailibrate-${{ github.ref_name }}.sbom.cdx.json
+          upload-release-assets: false
+
       - name: GitHub Release erstellen
         uses: softprops/action-gh-release@v2
         with:
           name: Kailibrate ${{ github.ref_name }}
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}
-          files: build/app/outputs/flutter-apk/kailibrate-${{ github.ref_name }}.apk
+          files: |
+            build/app/outputs/flutter-apk/kailibrate-${{ github.ref_name }}.apk
+            kailibrate-${{ github.ref_name }}.sbom.cdx.json
           fail_on_unmatched_files: true

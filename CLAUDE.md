@@ -689,6 +689,7 @@ ROT13+Base64-obfuskiert (reiner Spoiler-Schutz, kein Sicherheitsfeature).
 | `just tag v<version>` | Release-Tag setzen und pushen (löst CI aus) |
 | `just docs` | Docs lokal vorschauen (http://127.0.0.1:8000) |
 | `just docs-build` | Statische Docs nach `site/` bauen |
+| `just sbom` | SBOM (CycloneDX) nach `sbom.cdx.json` erzeugen (benötigt syft) |
 
 CI (`ci.yml`) führt bei jedem Push/PR aus: `flutter pub get` →
 `build_runner build` → `flutter analyze` → `flutter test` →

@@ -57,3 +57,4 @@ key.properties
 
 # Kanban – Laufzeit-Lock (kein versionierbarer Board-State)
 kanban/.lock
+sbom.cdx.json
