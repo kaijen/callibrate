@@ -26,6 +26,13 @@ class GenerateResult {
 class OpenRouterService {
   static const _baseUrl = 'https://openrouter.ai/api/v1';
 
+  /// Obergrenze für die Antwortlänge – verhindert, dass ein fehlgeleitetes
+  /// Modell beliebig lange (und teure) Antworten erzeugt.
+  static const _maxTokens = 8000;
+
+  static String _truncate(String s, [int max = 300]) =>
+      s.length <= max ? s : '${s.substring(0, max)}…';
+
   /// Sends the finished prompt to the model and returns the response text
   /// along with optional usage/cost information.
   /// Throws [OpenRouterException] on 401 (invalid key), 402 (insufficient
@@ -53,6 +60,7 @@ class OpenRouterService {
               'messages': [
                 {'role': 'user', 'content': prompt},
               ],
+              'max_tokens': _maxTokens,
             }),
           )
           .timeout(const Duration(seconds: 90));
@@ -70,7 +78,7 @@ class OpenRouterService {
     }
     if (response.statusCode != 200) {
       throw OpenRouterException(
-        'API-Fehler ${response.statusCode}: ${response.body}',
+        'API-Fehler ${response.statusCode}: ${_truncate(response.body)}',
         statusCode: response.statusCode,
       );
     }
@@ -82,8 +90,16 @@ class OpenRouterService {
       throw const OpenRouterException('Ungültige JSON-Antwort vom Server.');
     }
 
+    // Moderation/Upstream-Fehler liefern teils HTTP 200 mit leerer
+    // choices-Liste – das darf keinen RangeError auslösen.
+    final choices = body['choices'];
+    if (choices is! List || choices.isEmpty) {
+      throw const OpenRouterException(
+          'Antwort enthält keine Ergebnisse (choices ist leer).');
+    }
+    final first = choices.first;
     final content =
-        body['choices']?[0]?['message']?['content'] as String?;
+        first is Map ? (first['message']?['content'] as String?) : null;
     if (content == null) {
       throw const OpenRouterException('Antwort enthält keinen Inhalt.');
     }
