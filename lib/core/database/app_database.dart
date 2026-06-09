@@ -193,26 +193,32 @@ class AppDatabase extends _$AppDatabase {
       (update(questions)..where((q) => q.id.equals(id)))
           .write(QuestionsCompanion(tags: Value(jsonEncode(tags))));
 
-  Future<void> deleteTagGlobally(String tag) async {
-    final all = await select(questions).get();
-    for (final q in all) {
-      final current = List<String>.from(jsonDecode(q.tags) as List);
-      if (current.contains(tag)) {
-        await updateQuestionTags(q.id, current..remove(tag));
-      }
-    }
-  }
+  Future<void> deleteTagGlobally(String tag) => transaction(() async {
+        final all = await select(questions).get();
+        for (final q in all) {
+          final current = List<String>.from(jsonDecode(q.tags) as List);
+          if (current.contains(tag)) {
+            await updateQuestionTags(q.id, current..remove(tag));
+          }
+        }
+      });
 
-  Future<void> renameTagGlobally(String oldTag, String newTag) async {
-    final all = await select(questions).get();
-    for (final q in all) {
-      final current = List<String>.from(jsonDecode(q.tags) as List);
-      if (current.contains(oldTag)) {
-        final updated = current.map((t) => t == oldTag ? newTag : t).toList();
-        await updateQuestionTags(q.id, updated);
-      }
-    }
-  }
+  Future<void> renameTagGlobally(String oldTag, String newTag) =>
+      transaction(() async {
+        final all = await select(questions).get();
+        for (final q in all) {
+          final current = List<String>.from(jsonDecode(q.tags) as List);
+          if (current.contains(oldTag)) {
+            // toSet() dedupliziert, falls der Zielname bereits als Tag an
+            // derselben Frage hängt.
+            final updated = current
+                .map((t) => t == oldTag ? newTag : t)
+                .toSet()
+                .toList();
+            await updateQuestionTags(q.id, updated);
+          }
+        }
+      });
 
   /// Rundet alle confidenceLevel-Werte auf den nächsten 5%-Schritt (50–100 %)
   /// und berechnet probability daraus neu. Einmalige Datenmigration.
