@@ -613,4 +613,85 @@ $jsonPayload
       );
     });
   });
+
+  group('probability-Feld wird als Schätzung abgeleitet', () {
+    ImportFile parseJson(Map<String, dynamic> data) =>
+        ImportParser.parse(jsonEncode(data), 'test.json');
+
+    test('probability >= 0.5 ergibt binaryChoice true mit gleicher Konfidenz',
+        () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'epistemic',
+        'questions': [
+          {'text': 'Frage?', 'probability': 0.7},
+        ],
+      });
+      final q = result.questions.single;
+      expect(q.hasEstimateData, isTrue);
+      expect(q.binaryChoice, isTrue);
+      expect(q.confidenceLevel, closeTo(0.7, 1e-9));
+    });
+
+    test('probability < 0.5 ergibt binaryChoice false mit gespiegelter '
+        'Konfidenz', () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'epistemic',
+        'questions': [
+          {'text': 'Frage?', 'probability': 0.35},
+        ],
+      });
+      final q = result.questions.single;
+      expect(q.hasEstimateData, isTrue);
+      expect(q.binaryChoice, isFalse);
+      expect(q.confidenceLevel, closeTo(0.65, 1e-9));
+    });
+
+    test('Konfidenz wird auf 5%-Schritte gerundet', () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'aleatory',
+        'questions': [
+          {'text': 'Frage?', 'probability': 0.82},
+        ],
+      });
+      expect(result.questions.single.confidenceLevel, closeTo(0.8, 1e-9));
+    });
+
+    test('explizite binaryChoice/confidenceLevel haben Vorrang', () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'aleatory',
+        'questions': [
+          {
+            'text': 'Frage?',
+            'binaryChoice': false,
+            'confidenceLevel': 0.6,
+            'probability': 0.9,
+          },
+        ],
+      });
+      final q = result.questions.single;
+      expect(q.binaryChoice, isFalse);
+      expect(q.confidenceLevel, closeTo(0.6, 1e-9));
+    });
+
+    test('interval-Fragen leiten nichts aus probability ab', () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'aleatory',
+        'questions': [
+          {
+            'text': 'Frage?',
+            'predictionType': 'interval',
+            'probability': 0.9,
+          },
+        ],
+      });
+      final q = result.questions.single;
+      expect(q.binaryChoice, isNull);
+      expect(q.hasEstimateData, isFalse);
+    });
+  });
 }

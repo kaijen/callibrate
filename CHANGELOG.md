@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Embedded `probability` estimates in import files (v1 format, as used
+  by the bundled sample data) are no longer silently dropped; they are
+  converted into a direction plus confidence level (#111)
 - Resolving a question twice (e.g. by double-tapping) could create
   duplicate resolutions that permanently crashed the detail and
   statistics screens for that question. Resolutions are now unique per

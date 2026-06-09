@@ -271,6 +271,18 @@ class ImportParser {
             _parseResolutionMap(Map<String, dynamic>.from(rawRes));
       }
 
+      // Eingebettete "probability"-Schätzungen (v1-Format, CLAUDE.md,
+      // Beispieldaten) in Richtung + Konfidenz ableiten, statt sie beim
+      // Import stillschweigend zu verwerfen.
+      if ((predictionType == 'binary' || predictionType == 'factual') &&
+          binaryChoice == null &&
+          probability != null) {
+        binaryChoice = probability >= 0.5;
+        final directed = probability >= 0.5 ? probability : 1 - probability;
+        confidenceLevel ??=
+            ((directed / 0.05).round() * 0.05).clamp(0.5, 1.0).toDouble();
+      }
+
       questions.add(ImportQuestion(
         text: text,
         category: questionCategory,
