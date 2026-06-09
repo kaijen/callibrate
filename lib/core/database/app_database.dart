@@ -111,6 +111,11 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        beforeOpen: (details) async {
+          // SQLite erzwingt REFERENCES nur mit aktiviertem Pragma;
+          // Drift schaltet das nicht automatisch ein.
+          await customStatement('PRAGMA foreign_keys = ON');
+        },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await m.addColumn(questions, questions.predictionType);
@@ -156,9 +161,6 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> insertQuestion(QuestionsCompanion q) =>
       into(questions).insert(q);
-
-  Future<void> deleteQuestion(int id) =>
-      (delete(questions)..where((q) => q.id.equals(id))).go();
 
   Future<void> deleteQuestions(List<int> ids) => transaction(() async {
         await (delete(resolutions)..where((r) => r.questionId.isIn(ids))).go();
