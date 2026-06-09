@@ -611,6 +611,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: const Text('Speichern'),
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Hinweis: Anfragen an OpenRouter senden die App-Kennung '
+                    'mit (HTTP-Referer/X-Title, ohne persönliche Daten) – '
+                    'Details in der Dokumentation.',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ],
               ),
             ),
