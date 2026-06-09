@@ -91,6 +91,11 @@ class BackupException implements Exception {
 class BackupService {
   static const int _backupVersion = 1;
   static const int _pbkdf2Iterations = 200000;
+  // Akzeptierter Bereich beim Restore: untrusted Werte aus der Datei werden
+  // begrenzt, damit weder eine geschwächte KDF (iterations: 1) noch ein
+  // DoS (iterations: 2^31) möglich ist.
+  static const int _minRestoreIterations = 100000;
+  static const int _maxRestoreIterations = 1000000;
   static const int _saltBytes = 16;
   static const int _nonceBytes = 12;
 
@@ -198,6 +203,10 @@ class BackupService {
     }
     final iterations =
         (kdf['iterations'] as num?)?.toInt() ?? _pbkdf2Iterations;
+    if (iterations < _minRestoreIterations ||
+        iterations > _maxRestoreIterations) {
+      throw const BackupException('Ungültige KDF-Parameter im Backup.');
+    }
     final salt = base64Decode(kdf['salt'] as String);
     final nonce = base64Decode(outer['nonce'] as String);
     final mac = base64Decode(outer['mac'] as String);
