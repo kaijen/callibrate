@@ -70,18 +70,29 @@ class _KailibrateAppState extends ConsumerState<KailibrateApp> {
   }
 
   Future<void> _runConfidenceRoundingMigration() async {
-    const key = 'confidence_rounding_migration_v1';
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(key) == true) return;
-    final db = ref.read(appDatabaseProvider);
-    await db.roundAllConfidenceLevels();
-    await prefs.setBool(key, true);
+    // Fire-and-forget aus initState: Fehler loggen statt verschlucken.
+    // Das Flag wird erst nach Erfolg gesetzt, beim nächsten Start wird
+    // die Migration also erneut versucht.
+    try {
+      const key = 'confidence_rounding_migration_v1';
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(key) == true) return;
+      final db = ref.read(appDatabaseProvider);
+      await db.roundAllConfidenceLevels();
+      await prefs.setBool(key, true);
+    } catch (e, stack) {
+      debugPrint('Konfidenz-Rundungsmigration fehlgeschlagen: $e\n$stack');
+    }
   }
 
   Future<void> _rescheduleNotifications() async {
-    final db = ref.read(appDatabaseProvider);
-    final predictions = await db.getAllPredictionViews();
-    await NotificationService.instance.rescheduleAll(predictions);
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final predictions = await db.getAllPredictionViews();
+      await NotificationService.instance.rescheduleAll(predictions);
+    } catch (e, stack) {
+      debugPrint('Neuplanung der Erinnerungen fehlgeschlagen: $e\n$stack');
+    }
   }
 
   @override
