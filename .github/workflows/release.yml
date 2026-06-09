@@ -45,7 +45,8 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_STORE_PATH: kailibrate-release.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-        run: flutter build apk --release --build-name="${{ github.ref_name }}" --build-number="${{ github.run_number }}"
+        # v-Präfix abschneiden, damit versionName "1.7.1" statt "v1.7.1" ist
+        run: flutter build apk --release --build-name="${GITHUB_REF_NAME#v}" --build-number="${{ github.run_number }}"
 
       - name: APK umbenennen
         run: |

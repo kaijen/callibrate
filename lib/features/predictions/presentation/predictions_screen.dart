@@ -442,8 +442,6 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         _currentPredictions.any((p) => p.question.category == 'epistemic');
     final hasAleatory =
         _currentPredictions.any((p) => p.question.category == 'aleatory');
-    final hasProbability = _currentPredictions
-        .any((p) => p.question.predictionType == 'probability');
     final hasBinary =
         _currentPredictions.any((p) => p.question.predictionType == 'binary');
     final hasFactual =
@@ -452,7 +450,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         _currentPredictions.any((p) => p.question.predictionType == 'interval');
 
     final showCategoryFilter = hasEpistemic && hasAleatory;
-    final typeCount = [hasProbability, hasBinary, hasFactual, hasInterval]
+    final typeCount = [hasBinary, hasFactual, hasInterval]
         .where((b) => b)
         .length;
     final showTypeFilter = typeCount > 1;
@@ -556,7 +554,6 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
           ],
           if (showTypeFilter) ...[
             _divider(),
-            if (hasProbability) typeChip('probability', 'Wahrscheinlichkeit'),
             if (hasBinary) typeChip('binary', 'Ja/Nein'),
             if (hasFactual) typeChip('factual', 'Wahr/Falsch'),
             if (hasInterval) typeChip('interval', 'Intervall'),

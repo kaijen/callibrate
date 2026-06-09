@@ -7,6 +7,9 @@ on:
 
 jobs:
   deploy:
+    # Prerelease-Tags (v1.7.1-beta.1) nicht deployen – sie würden den
+    # "latest"-Alias auf den Beta-Stand verschieben.
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

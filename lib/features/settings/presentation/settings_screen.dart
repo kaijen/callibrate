@@ -352,7 +352,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _launchDocs() async {
     final info = await PackageInfo.fromPlatform();
-    final version = info.version.replaceFirst(RegExp(r'^v'), '');
+    // versionName enthält seit dem Release-Workflow-Fix kein v-Präfix mehr.
+    final version = info.version;
     final uri = Uri.parse('https://kaijen.github.io/kailibrate/$version/');
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
@@ -750,6 +751,36 @@ class _TemplateManagerDialogState extends State<_TemplateManagerDialog> {
                     icon: const Icon(Icons.delete_outline),
                     color: Theme.of(context).colorScheme.error,
                     onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Vorlage löschen'),
+                          content: Text(
+                            'Die Vorlage „${t.name}" wird endgültig '
+                            'gelöscht. Diese Aktion kann nicht rückgängig '
+                            'gemacht werden.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(ctx).pop(false),
+                              child: const Text('Abbrechen'),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(ctx).colorScheme.error,
+                                foregroundColor:
+                                    Theme.of(ctx).colorScheme.onError,
+                              ),
+                              onPressed: () =>
+                                  Navigator.of(ctx).pop(true),
+                              child: const Text('Löschen'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
                       await PromptTemplateService.delete(t.id);
                       final updated =
                           await PromptTemplateService.loadAll();
