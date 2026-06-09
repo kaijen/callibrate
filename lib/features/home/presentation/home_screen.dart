@@ -58,10 +58,7 @@ class HomeScreen extends ConsumerWidget {
     if (resolved > 0) {
       final pairs = predictions
           .where((p) => p.status == PredictionStatus.resolved)
-          .map((p) => (
-                probability: p.estimate!.probability,
-                outcome: p.resolution!.outcome ? 1.0 : 0.0,
-              ))
+          .map(CalibrationStats.pairFor)
           .toList();
       stats = CalibrationStats.compute(pairs);
     }

@@ -59,9 +59,12 @@ class CalibrationFeedbackSheet extends StatelessWidget {
   }
 
   double _brierContribution() {
-    final p = estimate!.probability;
-    final o = outcome ? 1.0 : 0.0;
-    return pow(p - o, 2).toDouble();
+    final pair = CalibrationStats.pairForValues(
+      predictionType: predictionType,
+      estimate: estimate!,
+      outcome: outcome,
+    );
+    return pow(pair.probability - pair.outcome, 2).toDouble();
   }
 
   @override

@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Brier score on the dashboard and in the feedback sheet now uses the
+  same direction-based semantics as the statistics screen; the three
+  displays no longer contradict each other (#104)
 - Deadline reminders were scheduled in UTC instead of the device time
   zone; the 9:00 reminder now fires at 9:00 local time (#103)
 - Winkler score now uses the error tolerance (α = 1 − confidence level)

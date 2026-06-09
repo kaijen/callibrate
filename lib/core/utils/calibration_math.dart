@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import '../database/app_database.dart';
+
 /// Winkler/Interval-Score nach Gneiting & Raftery.
 ///
 /// `alpha` ist die **Fehlertoleranz** des Intervalls, also
@@ -131,6 +133,47 @@ class CalibrationStats {
         totalCount: 0,
         bins: [],
       );
+
+  /// Builds the calibration pair (probability, outcome) for a resolved
+  /// prediction. Single source of truth for all Brier/Log-Loss displays.
+  ///
+  /// For binary/factual types the internal `probability` field always
+  /// represents P(Wahr/Ja), which maps a "99 % FALSCH" estimate to 0.01.
+  /// That makes the calibration curve unintuitive: the user appears in the
+  /// 1 % bin even though they were 99 % confident and correct.
+  ///
+  /// Instead we use `confidenceLevel` as the probability and express the
+  /// outcome as whether the user's stated direction was correct. This
+  /// answers the natural question: "When I am X % confident, how often am
+  /// I right?"
+  ///
+  /// For interval predictions the standard formulation is kept: the stored
+  /// probability (= confidenceLevel) vs. whether the actual value fell
+  /// within the stated range.
+  static ({double probability, double outcome}) pairFor(PredictionView p) =>
+      pairForValues(
+        predictionType: p.question.predictionType,
+        estimate: p.estimate!,
+        outcome: p.resolution!.outcome,
+      );
+
+  /// Like [pairFor], but for call sites that have no [PredictionView].
+  static ({double probability, double outcome}) pairForValues({
+    required String predictionType,
+    required Estimate estimate,
+    required bool outcome,
+  }) {
+    if (predictionType == 'binary' || predictionType == 'factual') {
+      final wasRight = estimate.binaryChoice == outcome ? 1.0 : 0.0;
+      return (probability: estimate.confidenceLevel, outcome: wasRight);
+    }
+
+    // interval and legacy types: keep original semantics
+    return (
+      probability: estimate.probability,
+      outcome: outcome ? 1.0 : 0.0,
+    );
+  }
 
   static CalibrationStats compute(
       List<({double probability, double outcome})> pairs) {

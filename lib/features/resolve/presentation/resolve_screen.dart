@@ -151,12 +151,7 @@ class _ResolveBodyState extends ConsumerState<_ResolveBody> {
 
     List<({double probability, double outcome})> toPairs(
             List<PredictionView> views) =>
-        views
-            .map((v) => (
-                  probability: v.estimate!.probability,
-                  outcome: v.resolution!.outcome ? 1.0 : 0.0,
-                ))
-            .toList();
+        views.map(CalibrationStats.pairFor).toList();
 
     final overallStats = CalibrationStats.compute(toPairs(resolved));
     final typeResolved = resolved
