@@ -60,7 +60,13 @@ class _ImportNotifier extends StateNotifier<_ImportState> {
   }
 
   void setError(String message) {
-    state = state.copyWith(errorMessage: message, clearFile: false);
+    // importing explizit zurücksetzen – sonst bleibt der Import-Button
+    // nach einem Fehler dauerhaft auf "Importiere…" und gesperrt.
+    state = state.copyWith(
+      errorMessage: message,
+      importing: false,
+      clearFile: false,
+    );
   }
 
   void setImporting() {
