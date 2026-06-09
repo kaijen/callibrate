@@ -81,6 +81,27 @@ class ImportParseException implements Exception {
 }
 
 class ImportParser {
+  // Limits gegen UI-Verzerrung und Ressourcen-Missbrauch durch
+  // importierte Inhalte (CWE-20).
+  static const maxTextLength = 2000;
+  static const maxTagLength = 100;
+  static const maxTagCount = 50;
+  static const maxSourceLength = 200;
+
+  /// Unicode-Steuerzeichen außer `\n` und `\t`, inkl. Bidi-Overrides
+  /// (z. B. RTL-Override U+202E) und Bidi-Isolaten.
+  static final _controlChars = RegExp(
+      '[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F\\u202A-\\u202E\\u2066-\\u2069]');
+
+  static String _sanitize(String input) =>
+      input.replaceAll(_controlChars, '');
+
+  static String? _sanitizeOpt(String? input) {
+    if (input == null) return null;
+    final cleaned = _sanitize(input).trim();
+    return cleaned.isEmpty ? null : cleaned;
+  }
+
   static ImportFile parse(String content, String filename) {
     Map<String, dynamic> data;
 
@@ -198,15 +219,36 @@ class ImportParser {
       }
       final qMap = Map<String, dynamic>.from(q);
 
-      final text = qMap['text'] as String?;
-      if (text == null || text.trim().isEmpty) {
+      final rawText = qMap['text'] as String?;
+      if (rawText == null || rawText.trim().isEmpty) {
         throw ImportParseException('Frage $i: "text" fehlt oder ist leer.');
+      }
+      final text = _sanitize(rawText).trim();
+      if (text.isEmpty) {
+        throw ImportParseException('Frage $i: "text" fehlt oder ist leer.');
+      }
+      if (text.length > maxTextLength) {
+        throw ImportParseException(
+            'Frage $i: "text" überschreitet $maxTextLength Zeichen.');
       }
 
       final rawTags = qMap['tags'];
       final tags = rawTags is List
-          ? rawTags.map((t) => t.toString()).toList()
+          ? rawTags
+              .map((t) => _sanitize(t.toString()).trim())
+              .where((t) => t.isNotEmpty)
+              .toList()
           : <String>[];
+      if (tags.length > maxTagCount) {
+        throw ImportParseException(
+            'Frage $i: mehr als $maxTagCount Tags.');
+      }
+      for (final tag in tags) {
+        if (tag.length > maxTagLength) {
+          throw ImportParseException(
+              'Frage $i: Tag überschreitet $maxTagLength Zeichen.');
+        }
+      }
 
       DateTime? deadline;
       final rawDeadline = qMap['deadline'];
@@ -313,7 +355,7 @@ class ImportParser {
         confidenceLevel: confidenceLevel,
         lowerBound: lowerBound,
         upperBound: upperBound,
-        unit: unit,
+        unit: _sanitizeOpt(unit),
         resolution: importResolution,
       ));
     }
@@ -324,10 +366,16 @@ class ImportParser {
         questions.map((q) => q.category).whereType<String>().firstOrNull ??
         'epistemic';
 
+    final source = _sanitizeOpt(data['source'] as String?);
+    if (source != null && source.length > maxSourceLength) {
+      throw const ImportParseException(
+          'Feld "source" überschreitet $maxSourceLength Zeichen.');
+    }
+
     return ImportFile(
       version: versionInt,
       category: effectiveCategory,
-      source: data['source'] as String?,
+      source: source,
       questions: questions,
     );
   }
@@ -374,7 +422,7 @@ class ImportParser {
     return ImportResolution(
       outcome: map['outcome'] as bool? ?? false,
       numericOutcome: (map['numericOutcome'] as num?)?.toDouble(),
-      notes: map['notes'] as String?,
+      notes: _sanitizeOpt(map['notes'] as String?),
     );
   }
 

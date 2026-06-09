@@ -696,6 +696,82 @@ $jsonPayload
     });
   });
 
+  group('Längen- und Zeichenvalidierung', () {
+    ImportFile parseJson(Map<String, dynamic> data) =>
+        ImportParser.parse(jsonEncode(data), 'test.json');
+
+    Map<String, dynamic> fileWith(Map<String, dynamic> question,
+            {String? source}) =>
+        {
+          'version': 1,
+          'category': 'aleatory',
+          if (source != null) 'source': source,
+          'questions': [question],
+        };
+
+    test('überlanger Fragentext wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({'text': 'x' * 2001})),
+        throwsA(isA<ImportParseException>().having(
+            (e) => e.message, 'message', contains('2000'))),
+      );
+    });
+
+    test('RTL-Override und Null-Bytes werden entfernt', () {
+      final result = parseJson(
+          fileWith({'text': 'Harmlos\u202E \u0000wirklich?'}));
+      expect(result.questions.single.text, 'Harmlos wirklich?');
+    });
+
+    test('Zeilenumbruch und Tab bleiben erhalten', () {
+      final result = parseJson(fileWith({'text': 'Zeile 1\n\tZeile 2'}));
+      expect(result.questions.single.text, 'Zeile 1\n\tZeile 2');
+    });
+
+    test('Text nur aus Steuerzeichen gilt als leer', () {
+      expect(
+        () => parseJson(fileWith({'text': '\u202E '})),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('überlanger Tag wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({
+          'text': 'F?',
+          'tags': ['x' * 101],
+        })),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('mehr als 50 Tags werden abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({
+          'text': 'F?',
+          'tags': List.generate(51, (i) => 'tag$i'),
+        })),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('Steuerzeichen in Tags werden entfernt, leere Tags verworfen', () {
+      final result = parseJson(fileWith({
+        'text': 'F?',
+        'tags': ['ok\u202E', ' '],
+      }));
+      expect(result.questions.single.tags, ['ok']);
+    });
+
+    test('überlanges source-Feld wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({'text': 'F?'}, source: 'x' * 201)),
+        throwsA(isA<ImportParseException>().having(
+            (e) => e.message, 'message', contains('source'))),
+      );
+    });
+  });
+
   group('probability-Feld wird als Schätzung abgeleitet', () {
     ImportFile parseJson(Map<String, dynamic> data) =>
         ImportParser.parse(jsonEncode(data), 'test.json');
