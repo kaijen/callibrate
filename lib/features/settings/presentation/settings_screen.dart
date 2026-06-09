@@ -353,7 +353,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _launchDocs() async {
     final info = await PackageInfo.fromPlatform();
     // versionName enthält seit dem Release-Workflow-Fix kein v-Präfix mehr.
-    final version = info.version;
+    // Lokale Builds tragen die pubspec-Platzhalter-Version (0.1.0) bzw.
+    // Prerelease-Tags haben keine eigene Doku-Version – dann auf die
+    // "latest"-Doku ausweichen.
+    final version = (info.version == '0.1.0' || info.version.contains('-'))
+        ? 'latest'
+        : info.version;
     final uri = Uri.parse('https://kaijen.github.io/kailibrate/$version/');
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
