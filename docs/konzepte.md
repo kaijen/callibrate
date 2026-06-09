@@ -81,6 +81,47 @@ Nur aufgelöste Vorhersagen fließen in Brier Score und Kalibrierungskurve ein.
 
 ---
 
+## Theoretischer Hintergrund
+
+Wer tiefer einsteigen möchte – die Konzepte hinter Kailibrate sind gut
+erforscht und zugänglich aufbereitet:
+
+### Epistemisch vs. aleatorisch
+
+Die Unterscheidung zwischen reduzierbarer Unsicherheit (Unkenntnis) und
+inhärenter Zufälligkeit hat eine lange philosophische Tradition. Die
+*Stanford Encyclopedia of Philosophy* behandelt die Grundlagen in mehreren
+Artikeln:
+
+- [Interpretations of Probability](https://plato.stanford.edu/entries/probability-interpret/)
+  – was „Wahrscheinlichkeit" überhaupt bedeutet, inklusive der subjektiven
+  (bayesianischen) Deutung, auf der Kalibrierungstraining beruht
+- [Epistemology](https://plato.stanford.edu/entries/epistemology/) – Wissen
+  und gerechtfertigte Überzeugung
+- [Chance versus Randomness](https://plato.stanford.edu/entries/chance-randomness/)
+  – objektiver Zufall und seine Abgrenzung zur Unkenntnis
+
+### Kalibrierung als trainierbare Fähigkeit
+
+**Douglas W. Hubbard – „How to Measure Anything"** argumentiert, dass sich
+scheinbar Unmessbares fast immer messen lässt – und dass kalibrierte
+Schätzer der Schlüssel dazu sind. Hubbard zeigt, dass Kalibrierung durch
+Übung mit Feedback nachweislich trainierbar ist: genau der Ansatz, den
+Kailibrate mit Schätzen → Auflösen → Statistik umsetzt. Die
+90-%-Konfidenzintervalle aus dem Buch entsprechen dem `interval`-Typ.
+
+### Bayesianisches Denken
+
+**Tom Chivers – „Everything Is Predictable: How Bayesian Statistics Explain
+Our World"** erzählt die Geschichte des Satzes von Bayes und zeigt, wie
+Wahrscheinlichkeit als Grad persönlicher Überzeugung funktioniert: Eine
+Schätzung von 70 % ist keine Eigenschaft der Welt, sondern eine Aussage
+über den eigenen Kenntnisstand – die man mit neuer Information
+aktualisieren sollte. Kalibrierung misst, ob diese Überzeugungsgrade die
+Realität treffen.
+
+---
+
 ## Tags
 
 Tags sind frei wählbare Schlagworte, die einer Vorhersage zugeordnet werden. Sie dienen zur thematischen Gruppierung und können in der Vorhersagenliste und in den Statistiken als Filter verwendet werden. Mehrere Tags pro Vorhersage sind möglich; die Filterung ist OR-verknüpft (Vorhersagen mit mindestens einem der gewählten Tags werden angezeigt).
