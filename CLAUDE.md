@@ -247,10 +247,10 @@ Felder:
 | `questions[].tags` | nein | Liste von Schlagworten |
 | `questions[].answer` | nein | Bekannte Antwort (für Trivia/Historisches) |
 | `questions[].deadline` | nein | ISO-8601-Datum, wann die Frage auflöst |
-| `questions[].predictionType` | nein | `probability` (Standard), `binary`, `interval` |
-| `questions[].probability` | nein | Schätzwert 0–1 (für `probability`-Typ) |
-| `questions[].binaryChoice` | nein | `true`/`false` – Ja oder Nein (für `binary`) |
-| `questions[].confidenceLevel` | nein | Konfidenz 0–1 (für `binary` und `interval`, Standard: 0.9) |
+| `questions[].predictionType` | nein | `binary`, `factual`, `interval` (Standard: `factual` bei `epistemic`, sonst `binary`) |
+| `questions[].probability` | nein | Schätzwert 0–1; wird beim Import in Richtung (`binaryChoice`) + Konfidenz umgerechnet |
+| `questions[].binaryChoice` | nein | `true`/`false` – Ja/Nein bzw. Wahr/Falsch (für `binary`/`factual`) |
+| `questions[].confidenceLevel` | nein | Konfidenz 0–1 (für `binary`, `factual` und `interval`, Standard: 0.9) |
 | `questions[].lowerBound` | nein | Untergrenze (für `interval`) |
 | `questions[].upperBound` | nein | Obergrenze (für `interval`) |
 | `questions[].unit` | nein | Einheit des Intervalls, z.B. `km`, `°C` |
@@ -347,7 +347,25 @@ Statistiken zeigen, ob 70 %-Vorhersagen wirklich zu 70 % eintreten.
 
 Zusätzlich zum manuellen Erfassen können Fragenkataloge als JSON oder YAML
 importiert werden – nützlich für Trivia-Sammlungen (epistemisch) oder
-strukturierte Prognoseübungen (aleatorisch).
+strukturierte Prognoseübungen (aleatorisch). Ein KI-Generator erzeugt
+Fragenkataloge über die OpenRouter-API.
+
+---
+
+## Architektur-Realität (Abweichungen von Teil 1)
+
+Teil 1 beschreibt generische Muster. Dieses Projekt weicht bewusst ab:
+
+- **Kein Freezed, keine DAOs, kein Riverpod-Codegen.** Datenmodelle sind
+  die von Drift generierten Row-Klassen (`Question`, `Estimate`,
+  `Resolution`) plus das handgeschriebene View-Model `PredictionView`.
+  State-Management läuft über klassische `Provider`/`StateNotifierProvider`
+  ohne `@riverpod`-Annotationen.
+- **Generierte Dateien sind nicht eingecheckt.** Vor Analyse/Test/Build
+  immer `just gen` (build_runner) ausführen – sonst fehlt
+  `app_database.g.dart`.
+- **Release-Build:** `minifyEnabled false`, `shrinkResources false`
+  (Aktivierung ist als #63 offen). Java/Kotlin-Target ist 17.
 
 ---
 
@@ -355,81 +373,47 @@ strukturierte Prognoseübungen (aleatorisch).
 
 ```
 kailibrate/
-├── CLAUDE.md
-├── pubspec.yaml
-├── pubspec.lock
-├── analysis_options.yaml
-├── justfile
-├── .gitignore
+├── CLAUDE.md / DEVELOPER.md / CHANGELOG.md / Review_Fable.md
+├── pubspec.yaml / analysis_options.yaml / justfile
+├── mkdocs.yml / requirements-docs.txt
+├── .github/workflows/
+│   ├── ci.yml              # Analyse + Tests + Debug-APK bei Push/PR
+│   ├── release.yml         # Release-APK bei v*-Tags
+│   └── docs.yml            # Docs-Deploy bei v*-Tags (ohne Prereleases)
 ├── android/
-│   └── app/
-│       ├── build.gradle
-│       └── src/main/AndroidManifest.xml
-├── assets/
-│   └── sample_data/
-│       ├── sample_epistemic.json   # Beispiel-Trivia für epistemische Kalibrierung
-│       └── sample_aleatory.yaml    # Beispiel für aleatorische Schätzungen
+│   └── app/build.gradle    # minSdk 24, target/compileSdk 36, Java 17
+├── assets/sample_data/     # sample_epistemic.json, sample_aleatory.yaml
+├── docs/                   # MkDocs-Benutzerdoku (siehe unten)
 ├── lib/
-│   ├── main.dart
-│   ├── app.dart
+│   ├── main.dart           # Entry-Point: Zeitzonen-Init, Fehler-Handler
+│   ├── app.dart            # MaterialApp + go_router + Startup-Tasks
 │   ├── core/
 │   │   ├── database/
-│   │   │   ├── app_database.dart   # Drift-Schema
-│   │   │   ├── app_database.g.dart # generiert
-│   │   │   └── daos/
-│   │   │       ├── questions_dao.dart
-│   │   │       ├── estimates_dao.dart
-│   │   │       └── resolutions_dao.dart
-│   │   ├── models/
-│   │   │   ├── question.dart       # Freezed
-│   │   │   ├── estimate.dart       # Freezed
-│   │   │   └── resolution.dart     # Freezed
+│   │   │   └── app_database.dart   # Drift-Schema v6 + alle Queries
+│   │   ├── providers.dart          # appDatabaseProvider, predictionsStreamProvider
+│   │   ├── services/
+│   │   │   ├── api_key_service.dart        # OpenRouter-Key (flutter_secure_storage)
+│   │   │   ├── backup_service.dart         # Verschlüsseltes Backup (AES-GCM/PBKDF2)
+│   │   │   ├── notification_service.dart   # Deadline-Erinnerungen
+│   │   │   ├── openrouter_service.dart     # LLM-API-Client
+│   │   │   └── prompt_template_service.dart
 │   │   └── utils/
-│   │       ├── import_parser.dart  # JSON/YAML → Question-Liste
-│   │       └── calibration_math.dart
-│   ├── features/
-│   │   ├── predictions/
-│   │   │   ├── data/
-│   │   │   │   └── predictions_repository.dart
-│   │   │   └── presentation/
-│   │   │       ├── predictions_provider.dart
-│   │   │       ├── predictions_screen.dart
-│   │   │       └── prediction_card.dart
-│   │   ├── estimate/
-│   │   │   └── presentation/
-│   │   │       ├── estimate_provider.dart
-│   │   │       └── estimate_screen.dart
-│   │   ├── resolve/
-│   │   │   └── presentation/
-│   │   │       ├── resolve_provider.dart
-│   │   │       └── resolve_screen.dart
-│   │   ├── stats/
-│   │   │   └── presentation/
-│   │   │       ├── stats_provider.dart
-│   │   │       └── stats_screen.dart
-│   │   ├── import_data/
-│   │   │   └── presentation/
-│   │   │       ├── import_provider.dart
-│   │   │       └── import_screen.dart
-│   │   └── settings/
-│   │       └── presentation/
-│   │           └── settings_screen.dart
+│   │       ├── calibration_math.dart   # Brier, LogLoss, Bins, Winkler, pairFor
+│   │       ├── import_parser.dart      # JSON/YAML → ImportFile (+ Validierung)
+│   │       ├── obfuscation.dart        # ROT13+Base64 Spoiler-Schutz
+│   │       └── format_utils.dart
+│   ├── features/           # je <feature>/presentation/
+│   │   ├── home/  predictions/  estimate/  resolve/  stats/
+│   │   ├── import_data/  new_prediction/  settings/  ai_generator/
 │   └── shared/
-│       ├── widgets/
-│       │   ├── probability_slider.dart
-│       │   ├── estimate_inputs.dart    # EstimateFormState, BinaryEstimateInput, IntervalEstimateInput, ConfidenceSlider
-│       │   └── calibration_chart.dart
-│       └── theme/
-│           └── app_theme.dart
-├── test/
-│   ├── unit/
-│   │   ├── calibration_math_test.dart
-│   │   └── import_parser_test.dart
-│   └── widget/
-│       └── estimate_screen_test.dart
-└── integration_test/
-    └── app_test.dart
+│       ├── widgets/        # estimate_inputs, feedback_sheet,
+│       │                   # calibration_chart, score_history_chart,
+│       │                   # winkler_history_chart
+│       └── theme/app_theme.dart
+└── test/unit/              # calibration_math, import_parser, backup_service
 ```
+
+Es gibt (noch) keine Widget- oder Integrationstests.
 
 ---
 
@@ -437,10 +421,10 @@ kailibrate/
 
 ### Datenbanktabellen (Drift)
 
-Schemaversion: **2** (Migration via `MigrationStrategy.onUpgrade`).
+Schemaversion: **6** (Migrationen via `MigrationStrategy.onUpgrade`;
+`beforeOpen` aktiviert `PRAGMA foreign_keys = ON`).
 
 ```dart
-// Frage / Vorhersage-Gegenstand
 class Questions extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get questionText => text().named('text')();
@@ -451,27 +435,27 @@ class Questions extends Table {
   BoolColumn get knownAnswer => boolean().nullable()();
   DateTimeColumn get deadline => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  TextColumn get predictionType =>          // 'probability' | 'binary' | 'interval'
-      text().withDefault(const Constant('probability'))();
+  // 'binary' | 'factual' | 'interval'
+  TextColumn get predictionType =>
+      text().withDefault(const Constant('binary'))();
+  TextColumn get unit => text().nullable()(); // v3: Einheit für interval
 }
 
-// Schätzung (Wahrscheinlichkeitsbewertung)
 class Estimates extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get questionId => integer().references(Questions, #id)();
   RealColumn get probability => real()();   // 0.0–1.0 – kanonischer Kalibrierwert
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  RealColumn get confidenceLevel => real().withDefault(const Constant(0.9))();
-  BoolColumn get binaryChoice => boolean().nullable()(); // true=JA, false=NEIN
   RealColumn get lowerBound => real().nullable()();
   RealColumn get upperBound => real().nullable()();
-  TextColumn get unit => text().nullable()(); // z.B. "m", "°C"
+  TextColumn get unit => text().nullable()();
+  RealColumn get confidenceLevel => real().withDefault(const Constant(0.9))();
+  BoolColumn get binaryChoice => boolean().nullable()(); // true=JA/WAHR
 
   @override
   List<Set<Column>> get uniqueKeys => [{questionId}]; // max. eine Schätzung pro Frage
 }
 
-// Auflösung (tatsächliches Ergebnis)
 class Resolutions extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get questionId => integer().references(Questions, #id)();
@@ -479,9 +463,11 @@ class Resolutions extends Table {
   TextColumn get notes => text().nullable()();
   DateTimeColumn get resolvedAt => dateTime().withDefault(currentDateAndTime)();
   RealColumn get numericOutcome => real().nullable()(); // für interval-Typ
+
+  @override
+  List<Set<Column>> get uniqueKeys => [{questionId}]; // v6: max. eine Auflösung
 }
 
-// Importprotokoll
 class ImportBatches extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get filename => text()();
@@ -491,23 +477,25 @@ class ImportBatches extends Table {
 }
 ```
 
-### Freezed-Domänenmodelle
+### Vorhersagetypen
 
-```dart
-@freezed
-class Prediction with _$Prediction {
-  const factory Prediction({
-    required int id,
-    required String text,
-    required String category,    // 'epistemic' | 'aleatory'
-    required List<String> tags,
-    double? probability,         // null = noch nicht geschätzt
-    bool? outcome,               // null = noch nicht aufgelöst
-    DateTime? deadline,
-    DateTime? resolvedAt,
-  }) = _Prediction;
-}
-```
+| Typ | Bedeutung | Schätz-UI |
+|-----|-----------|-----------|
+| `binary` | Tritt das Ereignis ein? (aleatorisch) | Ja/Nein + Konfidenz 50–100 % |
+| `factual` | Ist die Aussage wahr? (epistemisch) | Wahr/Falsch + Konfidenz 50–100 % |
+| `interval` | Numerische Schätzung | Unter-/Obergrenze + Konfidenz |
+
+Der frühere Typ `probability` wurde mit Schema v5 entfernt und wird beim
+Import/bei Migrationen anhand der Kategorie auf `binary`/`factual` gemappt.
+
+### View-Model
+
+`PredictionView` (in `app_database.dart`) bündelt `Question` + optionale
+`Estimate`/`Resolution` und leitet daraus `PredictionStatus`
+(`pending` → `needsResolution` → `resolved`) und `tagList` ab.
+`watchAllPredictionViews()` ist eine JOIN-basierte Drift-Query, die auf
+Änderungen aller drei Tabellen reagiert – kein manuelles
+`ref.invalidate(predictionsStreamProvider)` nötig.
 
 ---
 
@@ -515,18 +503,35 @@ class Prediction with _$Prediction {
 
 | Route | Screen | Beschreibung |
 |-------|--------|--------------|
-| `/` | HomeScreen | Dashboard mit Übersicht und offenen Schätzungen |
-| `/predictions` | PredictionsScreen | Liste aller Vorhersagen, filterbar |
-| `/new` | NewPredictionScreen | Manuelle Erfassung einer neuen Vorhersage; optional mit sofortiger Schätzung |
-| `/estimate/:id` | EstimateScreen | Wahrscheinlichkeit schätzen (Slider, Ja/Nein, Intervall) |
+| `/` | HomeScreen | Dashboard mit Statuskarten und Navigation |
+| `/predictions` | PredictionsScreen | Liste mit Tabs/Filtern, Mehrfachauswahl, Teilen |
+| `/new` | NewPredictionScreen | Manuelle Erfassung einer neuen Vorhersage |
+| `/estimate/:id` | EstimateScreen | Schätzung abgeben (Ja/Nein, Wahr/Falsch, Intervall) |
 | `/resolve/:id` | ResolveScreen | Ergebnis eintragen |
+| `/prediction/:id` | PredictionDetailScreen | Detail-Ansicht einer Vorhersage |
 | `/stats` | StatsScreen | Kalibrierungsstatistiken und Diagramme |
-| `/import` | ImportScreen | JSON/YAML-Datei laden und importieren |
-| `/settings` | SettingsScreen | App-Einstellungen |
+| `/import` | ImportScreen | JSON/YAML laden bzw. aus Zwischenablage einfügen |
+| `/ai-generator` | AiGeneratorScreen | Fragenkataloge per LLM (OpenRouter) erzeugen |
+| `/settings` | SettingsScreen | Export/Backup, KI-Konfiguration, Tags, Reset |
+
+Ungültige `:id`-Parameter leiten auf `/` um; unbekannte Routen zeigt der
+`errorBuilder` des Routers.
 
 ---
 
 ## Kalibrierungsstatistiken
+
+Implementiert in `core/utils/calibration_math.dart`; die Paar-Bildung
+(`CalibrationStats.pairFor`) ist die einzige Quelle für alle
+Brier-/Log-Loss-Anzeigen (Stats-Screen, Dashboard, Feedback-Sheets).
+
+### Richtungs-Semantik
+
+Für `binary`/`factual` wird nicht die rohe `probability` verwendet,
+sondern `confidenceLevel` vs. „war die gewählte Richtung korrekt?“ –
+das beantwortet die Frage „Wenn ich mir zu X % sicher bin, wie oft habe
+ich recht?“. Für `interval` gilt: Konfidenz vs. „lag der Messwert im
+Intervall?“.
 
 ### Brier Score
 
@@ -534,9 +539,7 @@ class Prediction with _$Prediction {
 BS = (1/N) × Σ (pᵢ - oᵢ)²
 ```
 
-- `pᵢ`: geschätzte Wahrscheinlichkeit (0–1)
-- `oᵢ`: tatsächliches Ergebnis (0 oder 1)
-- Wertebereich: 0 (perfekt) bis 1 (maximal schlecht)
+0 = perfekt, 0.25 = Münzwurf-Niveau, 1 = maximal falsch.
 
 ### Log Loss
 
@@ -546,19 +549,27 @@ LL = -(1/N) × Σ [oᵢ × log(pᵢ) + (1-oᵢ) × log(1-pᵢ)]
 
 Empfindlicher gegenüber extremen Fehlschätzungen als Brier.
 
+### Winkler-Score (Intervalle)
+
+Standard-Interval-Score nach Gneiting & Raftery mit Fehlertoleranz
+`α = 1 − Konfidenzniveau`; Treffer kosten die Intervallbreite, Misses
+zusätzlich `2·Distanz/α`. Anzeige als Einzelwerte über die Zeit (keine
+Mittelung, da einheitenabhängig).
+
 ### Kalibrierungskurve
 
-Schätzungen in Wahrscheinlichkeitsbins gruppieren (z.B. 0–10 %, 10–20 %, …).
-Pro Bin: erwarteter Wert (Mitte des Bins) vs. tatsächliche Trefferquote.
-Gut kalibriert: Punkte liegen auf der Diagonale.
+Schätzungen werden auf 5-%-Punkte zwischen 50 % und 100 % gerastet
+(50, 55, …, 100). Pro Punkt: Konfidenz vs. tatsächliche Trefferquote;
+gut kalibriert = Punkte auf der Diagonale. Legacy-Werte < 50 % werden
+gespiegelt.
 
 ### Diagramme (fl_chart)
 
 | Diagramm | Inhalt |
 |----------|--------|
-| Kalibrierungskurve | Bin-Mitte vs. Trefferquote; Diagonale als Referenz |
-| Häufigkeitshistogramm | Wie oft welche Wahrscheinlichkeit vergeben wurde |
-| Brier/Log-Loss-Verlauf | Rollender Durchschnitt über Zeit |
+| Kalibrierungskurve | Konfidenzpunkt vs. Trefferquote; Diagonale als Referenz |
+| Brier/Log-Loss-Verlauf | Kumulativer Durchschnitt über die Auflösungen |
+| Winkler-Verlauf | Einzelwerte je Intervallschätzung (grün/rot) |
 
 ---
 
@@ -569,7 +580,8 @@ Gut kalibriert: Punkte liegen auf der Diagonale.
 | `epistemic` | Unkenntnis reduzierbar durch Information; richtige Antwort existiert | Trivia, Historisches, Faktfragen |
 | `aleatory` | Inhärente Zufälligkeit; kein Zusatzwissen hilft | Wetter, Börsenkurse, Sportergebnisse |
 
-Die Kategorie beeinflusst die Darstellung und kann separat ausgewertet werden.
+Die Kategorie beeinflusst die Darstellung, den Default-Vorhersagetyp
+(`factual` vs. `binary`) und kann separat ausgewertet werden.
 
 ---
 
@@ -579,7 +591,7 @@ Die Kategorie beeinflusst die Darstellung und kann separat ausgewertet werden.
 name: kailibrate
 description: Kalibriere deine Wahrscheinlichkeitsschätzungen.
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.1.0+1   # Platzhalter – echte Version kommt aus dem Git-Tag (CI)
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -588,19 +600,26 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
-  riverpod_annotation: ^2.6.1
   drift: ^2.21.0
   sqlite3_flutter_libs: ^0.5.0
   path_provider: ^2.1.4
   path: ^1.9.0
-  freezed_annotation: ^2.4.4
-  json_annotation: ^4.9.0
   go_router: ^14.6.2
   file_picker: ^8.1.4
   yaml: ^3.1.2
   fl_chart: ^0.69.0
   intl: ^0.19.0
   share_plus: ^10.1.4
+  url_launcher: ^6.3.0
+  package_info_plus: ^8.0.0
+  flutter_local_notifications: ^18.0.0
+  timezone: ^0.9.0
+  flutter_timezone: ^5.1.0
+  device_info_plus: ^12.3.0
+  http: ^1.2.0
+  flutter_secure_storage: ^9.2.0
+  shared_preferences: ^2.3.0
+  cryptography: ^2.7.0
 
 dev_dependencies:
   flutter_test:
@@ -608,28 +627,50 @@ dev_dependencies:
   flutter_lints: ^4.0.0
   build_runner: ^2.4.13
   drift_dev: ^2.21.0
-  riverpod_generator: ^2.6.1
-  freezed: ^2.5.7
-  json_serializable: ^6.8.0
-  mockito: ^5.4.4
-
-flutter:
-  uses-material-design: true
-  assets:
-    - assets/sample_data/
 ```
+
+---
+
+## Versionierung und Releases
+
+Die **einzige verbindliche Versionsquelle ist der Git-Tag** (`v1.7.1`):
+
+- `release.yml` baut mit `--build-name="${GITHUB_REF_NAME#v}"` und
+  `--build-number=<CI-Run-Nummer>`; `build.gradle` übernimmt beides via
+  `flutter.versionName`/`flutter.versionCode`.
+- Das `version:`-Feld in `pubspec.yaml` bleibt bewusst auf dem
+  Platzhalter `0.1.0+1` – lokale Builds melden daher 0.1.0.
+  `_launchDocs` in den Einstellungen fällt in diesem Fall auf die
+  `latest`-Doku zurück.
+- Prerelease-Tags (`v1.7.1-beta.1`) erzeugen ein GitHub-Prerelease,
+  deployen aber **keine** Doku.
+- Ablauf: CHANGELOG pflegen → `just tag v<version>` → CI baut Release
+  und Doku.
+
+Verteilung: APK-Datei direkt über GitHub Releases (Sideloading);
+kein Play Store geplant.
 
 ---
 
 ## Import-Workflow
 
-1. Nutzer wählt Datei über `file_picker` (JSON oder YAML) **oder** fügt Text aus der Zwischenablage ein (`parseAutoDetect()` erkennt Format automatisch).
-2. `import_parser.dart` liest und validiert das Schema.
-3. Vorschau: Liste der Fragen, Kategorie, Anzahl, Anzahl mit eingebetteter Schätzung – Nutzer bestätigt.
-4. Fragen werden in `Questions`-Tabelle geschrieben; enthält eine Frage Schätzfelder (`hasEstimateData == true`), wird sofort eine `Estimate` gespeichert. Batch in `ImportBatches` protokolliert.
-5. Bei Duplikaten (identischer Text): überspringen oder ersetzen – konfigurierbar.
+1. Nutzer wählt Datei über `file_picker` (JSON oder YAML) **oder** fügt
+   Text aus der Zwischenablage ein (`parseAutoDetect()` erkennt Format
+   automatisch, auch in Markdown-Code-Blöcken aus LLM-Antworten).
+2. `import_parser.dart` liest und validiert das Schema (Pflichtfelder,
+   Wertebereiche, `lowerBound < upperBound`, robuste Zahl-Konvertierung).
+3. Vorschau: Fragenliste mit Checkboxen, Duplikate (identischer Text)
+   sind vorab abgewählt und durchgestrichen – Nutzer bestätigt.
+4. Fragen werden in `Questions` geschrieben; enthält eine Frage
+   Schätzfelder (`hasEstimateData == true`), wird sofort eine `Estimate`
+   gespeichert. Ein eingebettetes `probability`-Feld wird in Richtung +
+   Konfidenz umgerechnet. Mitgelieferte (ggf. obfuskierte) `resolution`
+   wird als Auflösung übernommen. Batch in `ImportBatches` protokolliert.
+5. Fehler bei ungültigem Schema → `ImportParseException` mit
+   **Fragen-Index** in der Meldung; kein partieller Import (Transaktion).
 
-Fehler bei ungültigem Schema → Fehlermeldung mit Zeilennummer, kein partieller Import.
+Export: v2-Format mit pro-Frage-Metadaten; `resolution`-Felder sind
+ROT13+Base64-obfuskiert (reiner Spoiler-Schutz, kein Sicherheitsfeature).
 
 ---
 
@@ -638,17 +679,21 @@ Fehler bei ungültigem Schema → Fehlermeldung mit Zeilennummer, kein partielle
 | Befehl | Beschreibung |
 |--------|--------------|
 | `just install` | `flutter pub get` |
-| `just gen` | Code generieren (Drift, Riverpod, Freezed) |
+| `just gen` | Code generieren (Drift) – **vor erstem Build/Test nötig** |
 | `just gen-watch` | Code kontinuierlich generieren (Entwicklung) |
 | `just run` | App auf Gerät/Emulator starten |
 | `just test` | Tests ausführen |
-| `just lint` | Analyse |
+| `just lint` | `flutter analyze` (Infos sind fatal – Code muss lint-frei sein) |
 | `just apk` | Debug-APK bauen |
-| `just release` | Release-APK bauen |
+| `just release` | Release-APK bauen (lokal: Version 0.1.0, siehe oben) |
+| `just tag v<version>` | Release-Tag setzen und pushen (löst CI aus) |
 | `just docs` | Docs lokal vorschauen (http://127.0.0.1:8000) |
 | `just docs-build` | Statische Docs nach `site/` bauen |
+| `just sbom` | SBOM (CycloneDX) nach `sbom.cdx.json` erzeugen (benötigt syft) |
 
-Verteilung: APK-Datei direkt; kein Play Store geplant.
+CI (`ci.yml`) führt bei jedem Push/PR aus: `flutter pub get` →
+`build_runner build` → `flutter analyze` → `flutter test` →
+`flutter build apk --debug`.
 
 ---
 
@@ -664,18 +709,22 @@ Verteilung: APK-Datei direkt; kein Play Store geplant.
 |-------|--------|
 | `index.md` | Übersicht, Feature-Liste, Kategorientabelle |
 | `erste-schritte.md` | APK-Installation, erster Import-Flow |
+| `konzepte.md` | Kategorien und Grundbegriffe |
 | `vorhersagen/index.md` | Erfassen → Schätzen → Auflösen (Ablauf) |
-| `vorhersagen/typen.md` | `probability`, `binary`, `interval` |
-| `vorhersagen/detail-ansicht.md` | Detail-Ansicht aufgelöster Vorhersagen (ab v0.6.0) |
-| `kategorien.md` | `epistemic` vs. `aleatory` |
+| `vorhersagen/typen.md` | `binary`, `factual`, `interval` |
+| `vorhersagen/detail-ansicht.md` | Detail-Ansicht von Vorhersagen |
 | `import-export/index.md` | Import- und Export-Workflow |
 | `import-export/format.md` | Vollständige Feld-Referenz |
 | `import-export/beispiele.md` | JSON- und YAML-Beispiele |
-| `statistiken.md` | Brier Score, Log Loss, Kalibrierungskurve |
+| `import-export/llm-prompts.md` | Prompt-Vorlagen für LLM-generierte Kataloge |
+| `ki-generator.md` | KI-Generator (OpenRouter) |
+| `statistiken.md` | Brier Score, Log Loss, Winkler, Kalibrierungskurve |
+| `ueber-mich.md` | Hintergrund/Werte |
 
 ### Deployment
 
-Trigger: Push eines `v*`-Tags → `.github/workflows/docs.yml` läuft parallel zu `release.yml`.
+Trigger: Push eines `v*`-Tags (ohne `-`, also keine Prereleases) →
+`.github/workflows/docs.yml` läuft parallel zu `release.yml`.
 
 Ablauf:
 1. Python 3.12 + `requirements-docs.txt` installieren
@@ -709,10 +758,17 @@ aufgelöste Schätzungen – das spricht klar für SQL.
 
 ## Fehlerbehandlung
 
-- Ungültige Import-Datei → Fehlerdialog mit Ursache; kein Absturz
-- Leere Datenbank (erster Start) → Onboarding-Hinweis auf Import oder manuelle Eingabe
-- Unaufgelöste Fragen nach Deadline → Badge im Dashboard
-- Alle unbehandelten Exceptions → `FlutterError.onError` loggen; in Prod kein Stack-Trace anzeigen
+- Ungültige Import-Datei → Fehlermeldung mit Ursache und Fragen-Index;
+  kein Absturz, kein partieller Import
+- Leere Datenbank (erster Start) → Onboarding-Hinweis auf Import oder
+  manuelle Eingabe
+- Unaufgelöste Fragen nach Deadline → Warnfarbe im Dashboard,
+  Überfällig-Filter in der Liste
+- `FlutterError.onError` + `PlatformDispatcher.onError` sind in `main()`
+  gesetzt (Logging); Startup-Tasks in `app.dart` fangen und loggen
+  eigene Fehler
+- Backup-Restore ist atomar; Entschlüsselungs-/Formatfehler erscheinen
+  als verständliche `BackupException`
 
 ---
 
@@ -744,6 +800,9 @@ aufgelöste Schätzungen – das spricht klar für SQL.
   ]
 }
 ```
+
+`probability` wird beim Import in Richtung + Konfidenz umgerechnet
+(0.35 → „FALSCH mit 65 %“).
 
 ---
 

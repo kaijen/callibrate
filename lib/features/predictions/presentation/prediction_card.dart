@@ -37,7 +37,7 @@ class PredictionCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       color: selected == true
-          ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4)
+          ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4)
           : null,
       child: InkWell(
         onTap: onTap,
@@ -273,9 +273,9 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         label,
@@ -293,9 +293,9 @@ class _OverdueBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.15),
+        color: Colors.red.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.withOpacity(0.5)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
       ),
       child: Text(
         'Überfällig',

@@ -150,7 +150,11 @@ class AiGeneratorNotifier extends StateNotifier<AiGeneratorState> {
         prompt: prompt,
       );
 
-      debugPrint('[AI] raw response:\n${result.text}');
+      // Roh-Antwort nur in Debug-Builds loggen – sie kann lang sein und
+      // gehört nicht in Release-Logs.
+      if (kDebugMode) {
+        debugPrint('[AI] raw response:\n${result.text}');
+      }
 
       final importFile = ImportParser.parseAutoDetect(result.text);
 

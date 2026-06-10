@@ -76,13 +76,13 @@ class WinklerHistoryChart extends StatelessWidget {
             drawVerticalLine: false,
             horizontalInterval: 1.0, // one grid line per decade
             getDrawingHorizontalLine: (_) => FlLine(
-              color: cs.outline.withOpacity(0.2),
+              color: cs.outline.withValues(alpha: 0.2),
               strokeWidth: 1,
             ),
           ),
           borderData: FlBorderData(
             show: true,
-            border: Border.all(color: cs.outline.withOpacity(0.4)),
+            border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
           ),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
@@ -142,7 +142,7 @@ class WinklerHistoryChart extends StatelessWidget {
             LineChartBarData(
               spots: logSpots,
               isCurved: false,
-              color: cs.outline.withOpacity(0.25),
+              color: cs.outline.withValues(alpha: 0.25),
               barWidth: 1,
               dotData: FlDotData(
                 show: true,

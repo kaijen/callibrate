@@ -1,5 +1,13 @@
 import 'dart:math';
 
+import '../database/app_database.dart';
+
+/// Winkler/Interval-Score nach Gneiting & Raftery.
+///
+/// `alpha` ist die **Fehlertoleranz** des Intervalls, also
+/// `1 − Konfidenzniveau` (z. B. 0.1 bei einem 90 %-Intervall).
+/// Verfehlte Intervalle werden mit `2·Distanz/α` bestraft – je höher die
+/// Konfidenz (kleineres α), desto härter die Strafe bei einem Miss.
 class WinklerStats {
   final double score;
   final int count;
@@ -126,6 +134,47 @@ class CalibrationStats {
         bins: [],
       );
 
+  /// Builds the calibration pair (probability, outcome) for a resolved
+  /// prediction. Single source of truth for all Brier/Log-Loss displays.
+  ///
+  /// For binary/factual types the internal `probability` field always
+  /// represents P(Wahr/Ja), which maps a "99 % FALSCH" estimate to 0.01.
+  /// That makes the calibration curve unintuitive: the user appears in the
+  /// 1 % bin even though they were 99 % confident and correct.
+  ///
+  /// Instead we use `confidenceLevel` as the probability and express the
+  /// outcome as whether the user's stated direction was correct. This
+  /// answers the natural question: "When I am X % confident, how often am
+  /// I right?"
+  ///
+  /// For interval predictions the standard formulation is kept: the stored
+  /// probability (= confidenceLevel) vs. whether the actual value fell
+  /// within the stated range.
+  static ({double probability, double outcome}) pairFor(PredictionView p) =>
+      pairForValues(
+        predictionType: p.question.predictionType,
+        estimate: p.estimate!,
+        outcome: p.resolution!.outcome,
+      );
+
+  /// Like [pairFor], but for call sites that have no [PredictionView].
+  static ({double probability, double outcome}) pairForValues({
+    required String predictionType,
+    required Estimate estimate,
+    required bool outcome,
+  }) {
+    if (predictionType == 'binary' || predictionType == 'factual') {
+      final wasRight = estimate.binaryChoice == outcome ? 1.0 : 0.0;
+      return (probability: estimate.confidenceLevel, outcome: wasRight);
+    }
+
+    // interval and legacy types: keep original semantics
+    return (
+      probability: estimate.probability,
+      outcome: outcome ? 1.0 : 0.0,
+    );
+  }
+
   static CalibrationStats compute(
       List<({double probability, double outcome})> pairs) {
     if (pairs.isEmpty) return empty();
@@ -145,11 +194,20 @@ class CalibrationStats {
     }
     ll = -ll / n;
 
-    // Calibration points at 5% steps: 50%, 55%, …, 100% (11 points)
+    // Calibration points at 5% steps: 50%, 55%, …, 100% (11 points).
+    // Legacy-Wahrscheinlichkeiten < 50 % (alter 'probability'-Typ) werden
+    // gespiegelt (p → 1−p, outcome → 1−outcome) statt in den 50 %-Bin
+    // geklemmt – sonst verzerren sie den untersten Punkt der Kurve.
     final binData = List.generate(11, (_) => <double>[]);
     for (final p in pairs) {
-      final binIdx = ((p.probability - 0.5) * 20).round().clamp(0, 10);
-      binData[binIdx].add(p.outcome);
+      var prob = p.probability;
+      var out = p.outcome;
+      if (prob < 0.5) {
+        prob = 1 - prob;
+        out = 1 - out;
+      }
+      final binIdx = ((prob - 0.5) * 20).round().clamp(0, 10);
+      binData[binIdx].add(out);
     }
 
     final bins = <CalibrationBin>[];

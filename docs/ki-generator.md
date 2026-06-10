@@ -63,6 +63,24 @@ Für einfache Fragen reichen günstige Modelle (z. B. `google/gemini-flash-1.5`)
 
 ---
 
+## Übermittelte Daten und App-Identifikation
+
+Jede Anfrage an OpenRouter enthält neben dem Prompt zwei von OpenRouter
+empfohlene Identifikations-Header:
+
+| Header | Wert |
+|--------|------|
+| `HTTP-Referer` | `https://github.com/kaijen/kailibrate` |
+| `X-Title` | `Kailibrate` |
+
+Diese Header erscheinen in den OpenRouter-Logs und ordnen die Nutzung
+deines API-Keys der App Kailibrate zu (u. a. für die App-Ranglisten auf
+openrouter.ai). Sie enthalten keine persönlichen Daten und keine Inhalte
+deiner Vorhersagen. Wer einen eigenen Fork betreibt, kann die Werte in
+`lib/core/services/openrouter_service.dart` anpassen.
+
+---
+
 ## Manuell mit einem LLM
 
 Wer keinen API-Key einrichten möchte, kann die Prompts aus dem KI-Generator auch manuell in ein beliebiges Sprachmodell eingeben und das Ergebnis als Datei importieren oder aus der Zwischenablage einfügen.

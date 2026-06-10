@@ -32,7 +32,7 @@ Wer ein eingetretenes Ereignis mit 1 % schätzt, wird stärker bestraft als beim
 
 ## Winkler Score
 
-Bewertet Intervallschätzungen. Für jeden Schätzbereich `[L, U]` mit Konfidenzniveau `α` gilt:
+Bewertet Intervallschätzungen. Für jeden Schätzbereich `[L, U]` mit Konfidenzniveau `c` und Fehlertoleranz `α = 1 − c` (z. B. `α = 0,1` bei einem 90-%-Intervall) gilt:
 
 ```
 W = (U − L)                            falls Actual ∈ [L, U]
@@ -40,16 +40,16 @@ W = (U − L) + 2·(L − Actual) / α      falls Actual < L
 W = (U − L) + 2·(Actual − U) / α      falls Actual > U
 ```
 
-Je enger das Intervall und je häufiger der tatsächliche Wert darin liegt, desto besser (niedriger). Kailibrate zeigt die Einzelwerte jeder Schätzung als Punkt-Diagramm über die Zeit – Treffer grün, Ausreißer rot. Ein Durchschnitt über alle Fragen hinweg wäre irreführend, da der Score einheitenabhängig ist: Ein guter Wert bei Körpergrößen (z. B. 5 cm) und ein guter Wert bei Einwohnerzahlen (z. B. 200.000) lassen sich nicht vergleichen.
+Je enger das Intervall und je häufiger der tatsächliche Wert darin liegt, desto besser (niedriger). Wer mit hoher Konfidenz danebenliegt, wird härter bestraft: Ein verfehltes 95-%-Intervall kostet pro Distanzeinheit das Vierfache eines verfehlten 80-%-Intervalls. Kailibrate zeigt die Einzelwerte jeder Schätzung als Punkt-Diagramm über die Zeit – Treffer grün, Ausreißer rot. Ein Durchschnitt über alle Fragen hinweg wäre irreführend, da der Score einheitenabhängig ist: Ein guter Wert bei Körpergrößen (z. B. 5 cm) und ein guter Wert bei Einwohnerzahlen (z. B. 200.000) lassen sich nicht vergleichen.
 
 ---
 
 ## Kalibrierungskurve
 
-Schätzungen werden in 10-%-Bins gruppiert (50–60 %, 60–70 %, …). Pro Bin zeigt die Kurve:
+Schätzungen werden auf 5-%-Punkte zwischen 50 % und 100 % gerastet (50 %, 55 %, …, 100 %); jeder Wert zählt zum nächstgelegenen Punkt. Pro Punkt zeigt die Kurve:
 
-- **X-Achse** – Mitte des Bins (erwartete Trefferquote)
-- **Y-Achse** – tatsächliche Trefferquote in diesem Bin
+- **X-Achse** – Konfidenzpunkt (erwartete Trefferquote)
+- **Y-Achse** – tatsächliche Trefferquote an diesem Punkt
 
 Eine perfekt kalibrierte Person liegt auf der Diagonale: Wer 70 % sagt, hat in 70 % der Fälle recht.
 

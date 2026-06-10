@@ -60,7 +60,13 @@ class _ImportNotifier extends StateNotifier<_ImportState> {
   }
 
   void setError(String message) {
-    state = state.copyWith(errorMessage: message, clearFile: false);
+    // importing explizit zurücksetzen – sonst bleibt der Import-Button
+    // nach einem Fehler dauerhaft auf "Importiere…" und gesperrt.
+    state = state.copyWith(
+      errorMessage: message,
+      importing: false,
+      clearFile: false,
+    );
   }
 
   void setImporting() {
@@ -299,12 +305,20 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     });
   }
 
+  /// Größenlimit für Import-Inhalte (Zwischenablage und Datei) –
+  /// verhindert, dass überlange Payloads den Parser überlasten (DoS/OOM).
+  static const _maxImportBytes = 200 * 1024; // 200 KB
+
   Future<void> _pasteFromClipboard(
       BuildContext context, _ImportNotifier notifier) async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final content = data?.text;
     if (content == null || content.trim().isEmpty) {
       notifier.setError('Zwischenablage ist leer oder enthält keinen Text.');
+      return;
+    }
+    if (utf8.encode(content).length > _maxImportBytes) {
+      notifier.setError('Inhalt zu groß (max. 200 KB).');
       return;
     }
     try {
@@ -329,6 +343,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       final file = result.files.first;
       if (file.bytes == null) {
         notifier.setError('Datei konnte nicht gelesen werden.');
+        return;
+      }
+      if (file.bytes!.length > _maxImportBytes) {
+        notifier.setError('Datei zu groß (max. 200 KB).');
         return;
       }
 
@@ -382,7 +400,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           );
 
           if (q.hasResolution) {
-            await db.insertResolution(
+            await db.upsertResolution(
               ResolutionsCompanion.insert(
                 questionId: id,
                 outcome: q.resolution!.outcome,
@@ -435,7 +453,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         );
       });
 
-      ref.invalidate(predictionsStreamProvider);
       notifier.setImported(questionsToImport.length);
     } catch (e) {
       notifier.setError('Import fehlgeschlagen: $e');

@@ -569,25 +569,25 @@ questions:
   - text: Frage aus YAML-Block''';
 
     test('extrahiert JSON aus ```json-Block', () {
-      final content = '```json\n$jsonPayload\n```';
+      const content = '```json\n$jsonPayload\n```';
       final result = ImportParser.parseAutoDetect(content);
       expect(result.questions.first.text, 'Frage aus Code-Block');
     });
 
     test('extrahiert YAML aus ```yaml-Block', () {
-      final content = '```yaml\n$yamlPayload\n```';
+      const content = '```yaml\n$yamlPayload\n```';
       final result = ImportParser.parseAutoDetect(content);
       expect(result.questions.first.text, 'Frage aus YAML-Block');
     });
 
     test('extrahiert JSON aus ```yml-Block', () {
-      final content = '```yml\n$jsonPayload\n```';
+      const content = '```yml\n$jsonPayload\n```';
       final result = ImportParser.parseAutoDetect(content);
       expect(result.questions.first.text, 'Frage aus Code-Block');
     });
 
     test('ignoriert umgebenden LLM-Text und nutzt ersten Code-Block', () {
-      final content = '''
+      const content = '''
 Hier sind deine Kalibrierungsfragen:
 
 ```json
@@ -611,6 +611,245 @@ $jsonPayload
         () => ImportParser.parseAutoDetect(content),
         throwsA(isA<ImportParseException>()),
       );
+    });
+  });
+
+  group('Validierung von Wertebereichen und Typen', () {
+    ImportFile parseJson(Map<String, dynamic> data) =>
+        ImportParser.parse(jsonEncode(data), 'test.json');
+
+    Map<String, dynamic> fileWith(Map<String, dynamic> question) => {
+          'version': 1,
+          'category': 'aleatory',
+          'questions': [question],
+        };
+
+    test('version als String wird akzeptiert', () {
+      final result = parseJson({
+        'version': '1',
+        'category': 'aleatory',
+        'questions': [
+          {'text': 'Frage?'},
+        ],
+      });
+      expect(result.version, 1);
+    });
+
+    test('nicht-numerische version wirft verständliche Exception', () {
+      expect(
+        () => parseJson({
+          'version': 'eins',
+          'category': 'aleatory',
+          'questions': [],
+        }),
+        throwsA(isA<ImportParseException>().having(
+            (e) => e.message, 'message', contains('version'))),
+      );
+    });
+
+    test('probability außerhalb 0–1 wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({'text': 'F?', 'probability': -2})),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('confidenceLevel außerhalb 0–1 wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({'text': 'F?', 'confidenceLevel': 7})),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('lowerBound >= upperBound wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({
+          'text': 'F?',
+          'predictionType': 'interval',
+          'lowerBound': 45,
+          'upperBound': 20,
+        })),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('nicht-numerische Schätzfelder werfen verständliche Exception', () {
+      expect(
+        () => parseJson(fileWith({'text': 'F?', 'confidenceLevel': 'hoch'})),
+        throwsA(isA<ImportParseException>().having(
+            (e) => e.message, 'message', contains('confidenceLevel'))),
+      );
+    });
+
+    test('numerische Strings werden konvertiert', () {
+      final result =
+          parseJson(fileWith({'text': 'F?', 'probability': '0.7'}));
+      expect(result.questions.single.probability, closeTo(0.7, 1e-9));
+    });
+
+    test('Dateiendung wird case-insensitiv geprüft', () {
+      final result = ImportParser.parse(
+        jsonEncode(fileWith({'text': 'F?'})),
+        'FRAGEN.JSON',
+      );
+      expect(result.questions, hasLength(1));
+    });
+  });
+
+  group('Längen- und Zeichenvalidierung', () {
+    ImportFile parseJson(Map<String, dynamic> data) =>
+        ImportParser.parse(jsonEncode(data), 'test.json');
+
+    Map<String, dynamic> fileWith(Map<String, dynamic> question,
+            {String? source}) =>
+        {
+          'version': 1,
+          'category': 'aleatory',
+          if (source != null) 'source': source,
+          'questions': [question],
+        };
+
+    test('überlanger Fragentext wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({'text': 'x' * 2001})),
+        throwsA(isA<ImportParseException>().having(
+            (e) => e.message, 'message', contains('2000'))),
+      );
+    });
+
+    test('RTL-Override und Null-Bytes werden entfernt', () {
+      final result = parseJson(
+          fileWith({'text': 'Harmlos\u202E \u0000wirklich?'}));
+      expect(result.questions.single.text, 'Harmlos wirklich?');
+    });
+
+    test('Zeilenumbruch und Tab bleiben erhalten', () {
+      final result = parseJson(fileWith({'text': 'Zeile 1\n\tZeile 2'}));
+      expect(result.questions.single.text, 'Zeile 1\n\tZeile 2');
+    });
+
+    test('Text nur aus Steuerzeichen gilt als leer', () {
+      expect(
+        () => parseJson(fileWith({'text': '\u202E '})),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('überlanger Tag wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({
+          'text': 'F?',
+          'tags': ['x' * 101],
+        })),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('mehr als 50 Tags werden abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({
+          'text': 'F?',
+          'tags': List.generate(51, (i) => 'tag$i'),
+        })),
+        throwsA(isA<ImportParseException>()),
+      );
+    });
+
+    test('Steuerzeichen in Tags werden entfernt, leere Tags verworfen', () {
+      final result = parseJson(fileWith({
+        'text': 'F?',
+        'tags': ['ok\u202E', ' '],
+      }));
+      expect(result.questions.single.tags, ['ok']);
+    });
+
+    test('überlanges source-Feld wird abgelehnt', () {
+      expect(
+        () => parseJson(fileWith({'text': 'F?'}, source: 'x' * 201)),
+        throwsA(isA<ImportParseException>().having(
+            (e) => e.message, 'message', contains('source'))),
+      );
+    });
+  });
+
+  group('probability-Feld wird als Schätzung abgeleitet', () {
+    ImportFile parseJson(Map<String, dynamic> data) =>
+        ImportParser.parse(jsonEncode(data), 'test.json');
+
+    test('probability >= 0.5 ergibt binaryChoice true mit gleicher Konfidenz',
+        () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'epistemic',
+        'questions': [
+          {'text': 'Frage?', 'probability': 0.7},
+        ],
+      });
+      final q = result.questions.single;
+      expect(q.hasEstimateData, isTrue);
+      expect(q.binaryChoice, isTrue);
+      expect(q.confidenceLevel, closeTo(0.7, 1e-9));
+    });
+
+    test('probability < 0.5 ergibt binaryChoice false mit gespiegelter '
+        'Konfidenz', () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'epistemic',
+        'questions': [
+          {'text': 'Frage?', 'probability': 0.35},
+        ],
+      });
+      final q = result.questions.single;
+      expect(q.hasEstimateData, isTrue);
+      expect(q.binaryChoice, isFalse);
+      expect(q.confidenceLevel, closeTo(0.65, 1e-9));
+    });
+
+    test('Konfidenz wird auf 5%-Schritte gerundet', () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'aleatory',
+        'questions': [
+          {'text': 'Frage?', 'probability': 0.82},
+        ],
+      });
+      expect(result.questions.single.confidenceLevel, closeTo(0.8, 1e-9));
+    });
+
+    test('explizite binaryChoice/confidenceLevel haben Vorrang', () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'aleatory',
+        'questions': [
+          {
+            'text': 'Frage?',
+            'binaryChoice': false,
+            'confidenceLevel': 0.6,
+            'probability': 0.9,
+          },
+        ],
+      });
+      final q = result.questions.single;
+      expect(q.binaryChoice, isFalse);
+      expect(q.confidenceLevel, closeTo(0.6, 1e-9));
+    });
+
+    test('interval-Fragen leiten nichts aus probability ab', () {
+      final result = parseJson({
+        'version': 1,
+        'category': 'aleatory',
+        'questions': [
+          {
+            'text': 'Frage?',
+            'predictionType': 'interval',
+            'probability': 0.9,
+          },
+        ],
+      });
+      final q = result.questions.single;
+      expect(q.binaryChoice, isNull);
+      expect(q.hasEstimateData, isFalse);
     });
   });
 }

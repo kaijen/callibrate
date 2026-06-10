@@ -42,3 +42,9 @@ docs:
 docs-build:
     pip install -r requirements-docs.txt
     mkdocs build
+
+# SBOM (CycloneDX JSON) nach sbom.cdx.json erzeugen (benötigt syft:
+# https://github.com/anchore/syft)
+sbom:
+    syft scan dir:. --source-name kailibrate -o cyclonedx-json=sbom.cdx.json
+    @echo "SBOM geschrieben nach sbom.cdx.json"

@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/services/notification_service.dart';
 import 'prediction_card.dart';
 
 enum FilterTab { all, pending, needsResolution, resolved }
@@ -271,8 +272,11 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
     if (confirmed != true || !mounted) return;
 
     final db = ref.read(appDatabaseProvider);
-    await db.deleteQuestions(_selectedIds.toList());
-    ref.invalidate(predictionsStreamProvider);
+    final ids = _selectedIds.toList();
+    await db.deleteQuestions(ids);
+    for (final id in ids) {
+      await NotificationService.instance.cancelNotificationsForQuestion(id);
+    }
     setState(() => _selectedIds.clear());
   }
 
@@ -298,7 +302,6 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
     for (final id in _selectedIds.toList()) {
       await db.updateQuestionTags(id, newTags);
     }
-    ref.invalidate(predictionsStreamProvider);
     setState(() => _selectedIds.clear());
   }
 
@@ -439,8 +442,6 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         _currentPredictions.any((p) => p.question.category == 'epistemic');
     final hasAleatory =
         _currentPredictions.any((p) => p.question.category == 'aleatory');
-    final hasProbability = _currentPredictions
-        .any((p) => p.question.predictionType == 'probability');
     final hasBinary =
         _currentPredictions.any((p) => p.question.predictionType == 'binary');
     final hasFactual =
@@ -449,7 +450,7 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
         _currentPredictions.any((p) => p.question.predictionType == 'interval');
 
     final showCategoryFilter = hasEpistemic && hasAleatory;
-    final typeCount = [hasProbability, hasBinary, hasFactual, hasInterval]
+    final typeCount = [hasBinary, hasFactual, hasInterval]
         .where((b) => b)
         .length;
     final showTypeFilter = typeCount > 1;
@@ -553,7 +554,6 @@ class _PredictionsScreenState extends ConsumerState<PredictionsScreen>
           ],
           if (showTypeFilter) ...[
             _divider(),
-            if (hasProbability) typeChip('probability', 'Wahrscheinlichkeit'),
             if (hasBinary) typeChip('binary', 'Ja/Nein'),
             if (hasFactual) typeChip('factual', 'Wahr/Falsch'),
             if (hasInterval) typeChip('interval', 'Intervall'),

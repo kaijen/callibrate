@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -236,7 +237,7 @@ class _StatsView extends StatelessWidget {
       );
     }
 
-    final pairs = predictions.map(_calibrationPair).toList();
+    final pairs = predictions.map(CalibrationStats.pairFor).toList();
 
     final stats = CalibrationStats.compute(pairs);
 
@@ -430,7 +431,7 @@ class _HistorySectionState extends State<_HistorySection> {
       ..sort((a, b) =>
           a.resolution!.resolvedAt.compareTo(b.resolution!.resolvedAt));
 
-    final pairs = sorted.map(_calibrationPair).toList();
+    final pairs = sorted.map(CalibrationStats.pairFor).toList();
 
     var history = CalibrationStats.computeHistory(pairs);
     if (_window > 0 && history.length > _window) {
@@ -448,10 +449,12 @@ class _HistorySectionState extends State<_HistorySection> {
           r.numericOutcome == null) {
         continue;
       }
+      // α ist die Fehlertoleranz (1 − Konfidenzniveau); bei 100 % Konfidenz
+      // auf 0.01 begrenzt, um Division durch 0 zu vermeiden.
       winklerInputs.add((
         lower: e.lowerBound!,
         upper: e.upperBound!,
-        alpha: e.confidenceLevel,
+        alpha: max(1 - e.confidenceLevel, 0.01),
         actual: r.numericOutcome!,
         questionId: p.question.id,
       ));
@@ -763,35 +766,4 @@ class _WindowSelector extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Builds a calibration pair (probability, outcome) for a resolved prediction.
-///
-/// For binary/factual types the internal `probability` field always represents
-/// P(Wahr/Ja), which maps a "99 % FALSCH" estimate to 0.01. That makes the
-/// calibration curve unintuitive: the user appears in the 1 % bin even though
-/// they were 99 % confident and correct.
-///
-/// Instead we use `confidenceLevel` as the probability and express the outcome
-/// as whether the user's stated direction was correct. This answers the
-/// natural question: "When I am X % confident, how often am I right?"
-///
-/// For interval predictions the standard formulation is kept: the stored
-/// probability (= confidenceLevel) vs. whether the actual value fell within
-/// the stated range.
-({double probability, double outcome}) _calibrationPair(PredictionView p) {
-  final type = p.question.predictionType;
-  final estimate = p.estimate!;
-  final resolution = p.resolution!;
-
-  if (type == 'binary' || type == 'factual') {
-    final wasRight = estimate.binaryChoice == resolution.outcome ? 1.0 : 0.0;
-    return (probability: estimate.confidenceLevel, outcome: wasRight);
-  }
-
-  // interval and legacy types: keep original semantics
-  return (
-    probability: estimate.probability,
-    outcome: resolution.outcome ? 1.0 : 0.0,
-  );
 }

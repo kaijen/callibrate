@@ -5,6 +5,8 @@ import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
+import '../utils/obfuscation.dart';
+
 part 'app_database.g.dart';
 
 // --- Tables ---
@@ -58,6 +60,13 @@ class Resolutions extends Table {
       dateTime().withDefault(currentDateAndTime)();
   // v2: tatsächlicher Messwert für interval-Typ
   RealColumn get numericOutcome => real().nullable()();
+
+  // v6: max. eine Auflösung pro Frage – Duplikate ließen
+  // getSingleOrNull() mit einem StateError crashen.
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {questionId}
+      ];
 }
 
 class ImportBatches extends Table {
@@ -106,11 +115,19 @@ class PredictionView {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Für Tests: erlaubt eine In-Memory-Datenbank (NativeDatabase.memory()).
+  AppDatabase.forTesting(super.e);
+
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        beforeOpen: (details) async {
+          // SQLite erzwingt REFERENCES nur mit aktiviertem Pragma;
+          // Drift schaltet das nicht automatisch ein.
+          await customStatement('PRAGMA foreign_keys = ON');
+        },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await m.addColumn(questions, questions.predictionType);
@@ -142,6 +159,18 @@ class AppDatabase extends _$AppDatabase {
               "WHERE prediction_type = 'probability' AND category = 'epistemic'",
             );
           }
+          if (from < 6) {
+            // v6: Unique-Constraint auf resolutions.question_id. Vorhandene
+            // Duplikate (z. B. durch Doppel-Tap beim Auflösen) deduplizieren –
+            // die jeweils älteste Auflösung bleibt erhalten – und die Tabelle
+            // anschließend mit dem neuen Constraint neu aufbauen.
+            await m.database.customStatement(
+              'DELETE FROM resolutions WHERE id NOT IN '
+              '(SELECT MIN(id) FROM resolutions GROUP BY question_id)',
+            );
+            // ignore: experimental_member_use
+            await m.alterTable(TableMigration(resolutions));
+          }
         },
       );
 
@@ -157,9 +186,6 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertQuestion(QuestionsCompanion q) =>
       into(questions).insert(q);
 
-  Future<void> deleteQuestion(int id) =>
-      (delete(questions)..where((q) => q.id.equals(id))).go();
-
   Future<void> deleteQuestions(List<int> ids) => transaction(() async {
         await (delete(resolutions)..where((r) => r.questionId.isIn(ids))).go();
         await (delete(estimates)..where((e) => e.questionId.isIn(ids))).go();
@@ -170,26 +196,32 @@ class AppDatabase extends _$AppDatabase {
       (update(questions)..where((q) => q.id.equals(id)))
           .write(QuestionsCompanion(tags: Value(jsonEncode(tags))));
 
-  Future<void> deleteTagGlobally(String tag) async {
-    final all = await select(questions).get();
-    for (final q in all) {
-      final current = List<String>.from(jsonDecode(q.tags) as List);
-      if (current.contains(tag)) {
-        await updateQuestionTags(q.id, current..remove(tag));
-      }
-    }
-  }
+  Future<void> deleteTagGlobally(String tag) => transaction(() async {
+        final all = await select(questions).get();
+        for (final q in all) {
+          final current = List<String>.from(jsonDecode(q.tags) as List);
+          if (current.contains(tag)) {
+            await updateQuestionTags(q.id, current..remove(tag));
+          }
+        }
+      });
 
-  Future<void> renameTagGlobally(String oldTag, String newTag) async {
-    final all = await select(questions).get();
-    for (final q in all) {
-      final current = List<String>.from(jsonDecode(q.tags) as List);
-      if (current.contains(oldTag)) {
-        final updated = current.map((t) => t == oldTag ? newTag : t).toList();
-        await updateQuestionTags(q.id, updated);
-      }
-    }
-  }
+  Future<void> renameTagGlobally(String oldTag, String newTag) =>
+      transaction(() async {
+        final all = await select(questions).get();
+        for (final q in all) {
+          final current = List<String>.from(jsonDecode(q.tags) as List);
+          if (current.contains(oldTag)) {
+            // toSet() dedupliziert, falls der Zielname bereits als Tag an
+            // derselben Frage hängt.
+            final updated = current
+                .map((t) => t == oldTag ? newTag : t)
+                .toSet()
+                .toList();
+            await updateQuestionTags(q.id, updated);
+          }
+        }
+      });
 
   /// Rundet alle confidenceLevel-Werte auf den nächsten 5%-Schritt (50–100 %)
   /// und berechnet probability daraus neu. Einmalige Datenmigration.
@@ -238,8 +270,8 @@ class AppDatabase extends _$AppDatabase {
       (select(resolutions)..where((r) => r.questionId.equals(questionId)))
           .getSingleOrNull();
 
-  Future<int> insertResolution(ResolutionsCompanion r) =>
-      into(resolutions).insert(r);
+  Future<int> upsertResolution(ResolutionsCompanion r) =>
+      into(resolutions).insertOnConflictUpdate(r);
 
   Future<void> updateResolutionOutcome(int questionId, bool outcome) =>
       (update(resolutions)..where((r) => r.questionId.equals(questionId)))
@@ -254,36 +286,29 @@ class AppDatabase extends _$AppDatabase {
 
   // --- Combined queries ---
 
-  Future<List<PredictionView>> getAllPredictionViews() async {
-    final qs = await getAllQuestions();
-    final result = <PredictionView>[];
-    for (final q in qs) {
-      final estimate = await getEstimateForQuestion(q.id);
-      final resolution = await getResolutionForQuestion(q.id);
-      result.add(PredictionView(
-        question: q,
-        estimate: estimate,
-        resolution: resolution,
-      ));
-    }
-    return result;
-  }
+  JoinedSelectStatement<HasResultSet, dynamic> _predictionViewQuery() =>
+      select(questions).join([
+        leftOuterJoin(estimates, estimates.questionId.equalsExp(questions.id)),
+        leftOuterJoin(
+            resolutions, resolutions.questionId.equalsExp(questions.id)),
+      ]);
 
-  Stream<List<PredictionView>> watchAllPredictionViews() {
-    return watchAllQuestions().asyncMap((qs) async {
-      final result = <PredictionView>[];
-      for (final q in qs) {
-        final estimate = await getEstimateForQuestion(q.id);
-        final resolution = await getResolutionForQuestion(q.id);
-        result.add(PredictionView(
-          question: q,
-          estimate: estimate,
-          resolution: resolution,
-        ));
-      }
-      return result;
-    });
-  }
+  List<PredictionView> _mapPredictionViewRows(List<TypedResult> rows) => rows
+      .map((row) => PredictionView(
+            question: row.readTable(questions),
+            estimate: row.readTableOrNull(estimates),
+            resolution: row.readTableOrNull(resolutions),
+          ))
+      .toList();
+
+  Future<List<PredictionView>> getAllPredictionViews() async =>
+      _mapPredictionViewRows(await _predictionViewQuery().get());
+
+  /// Beobachtet Questions, Estimates und Resolutions über einen JOIN –
+  /// Schreibzugriffe auf alle drei Tabellen lösen eine Emission aus, ein
+  /// manuelles Invalidieren des Providers ist nicht nötig.
+  Stream<List<PredictionView>> watchAllPredictionViews() =>
+      _predictionViewQuery().watch().map(_mapPredictionViewRows);
 
   Future<List<PredictionView>> getResolvedPredictionViews(
       {String? category, List<String>? tags}) async {
@@ -330,7 +355,7 @@ class AppDatabase extends _$AppDatabase {
         if (effectiveUnit != null && effectiveUnit.isNotEmpty)
           'unit': effectiveUnit,
         if (v.resolution != null)
-          'resolution': _obfuscateResolution({
+          'resolution': obfuscateResolution({
             'outcome': v.resolution!.outcome,
             if (v.resolution!.numericOutcome != null)
               'numericOutcome': v.resolution!.numericOutcome,
@@ -364,7 +389,7 @@ class AppDatabase extends _$AppDatabase {
         'hasKnownAnswer': q.hasKnownAnswer,
         if (q.knownAnswer != null) 'knownAnswer': q.knownAnswer,
         if (effectiveUnit != null && effectiveUnit.isNotEmpty) 'unit': effectiveUnit,
-        'resolution': _obfuscateResolution({
+        'resolution': obfuscateResolution({
           'outcome': v.resolution!.outcome,
           if (v.resolution!.numericOutcome != null)
             'numericOutcome': v.resolution!.numericOutcome,
@@ -422,20 +447,38 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Restores all questions, estimates, and resolutions from backup data.
+  ///
+  /// Löschen und Wiederherstellen laufen in **einer** Transaktion: Schlägt
+  /// ein Insert fehl (defektes oder manipuliertes Backup), rollt Drift alles
+  /// zurück und der alte Datenbestand bleibt erhalten. Ungültige Pflichtfelder
+  /// werfen eine [FormatException] mit verständlicher Ursache.
   Future<void> restoreFromBackup(Map<String, dynamic> backup) async {
-    await resetDatabase();
-    final questions = (backup['questions'] as List?) ?? [];
+    final questionList = (backup['questions'] as List?) ?? [];
     await transaction(() async {
-      for (final q in questions) {
-        final qMap = q as Map<String, dynamic>;
+      await delete(resolutions).go();
+      await delete(estimates).go();
+      await delete(importBatches).go();
+      await delete(questions).go();
+
+      for (var i = 0; i < questionList.length; i++) {
+        final q = questionList[i];
+        if (q is! Map) {
+          throw FormatException('Frage $i im Backup ist kein Objekt.');
+        }
+        final qMap = Map<String, dynamic>.from(q);
+        final text = qMap['text'];
+        if (text is! String || text.trim().isEmpty) {
+          throw FormatException(
+              'Frage $i im Backup hat kein gültiges "text"-Feld.');
+        }
         final id = await insertQuestion(QuestionsCompanion.insert(
-          questionText: qMap['text'] as String,
+          questionText: text,
           category: qMap['category'] as String? ?? 'epistemic',
           tags: Value(jsonEncode(qMap['tags'] ?? [])),
           source: Value(qMap['source'] as String?),
           hasKnownAnswer: Value(qMap['hasKnownAnswer'] as bool? ?? false),
           knownAnswer: Value(qMap['knownAnswer'] as bool?),
-          deadline: Value(qMap['deadline'] != null
+          deadline: Value(qMap['deadline'] is String
               ? DateTime.tryParse(qMap['deadline'] as String)
               : null),
           predictionType:
@@ -443,28 +486,42 @@ class AppDatabase extends _$AppDatabase {
           unit: Value(qMap['unit'] as String?),
         ));
 
-        final est = qMap['estimate'] as Map<String, dynamic>?;
-        if (est != null) {
+        final est = qMap['estimate'];
+        if (est is Map) {
+          final estMap = Map<String, dynamic>.from(est);
+          final probability = estMap['probability'];
+          if (probability is! num) {
+            throw FormatException(
+                'Schätzung zu Frage $i im Backup hat keine gültige '
+                '"probability".');
+          }
           await upsertEstimate(EstimatesCompanion.insert(
             questionId: id,
-            probability: (est['probability'] as num).toDouble(),
+            probability: probability.toDouble(),
             confidenceLevel:
-                Value((est['confidenceLevel'] as num?)?.toDouble() ?? 0.9),
-            binaryChoice: Value(est['binaryChoice'] as bool?),
-            lowerBound: Value((est['lowerBound'] as num?)?.toDouble()),
-            upperBound: Value((est['upperBound'] as num?)?.toDouble()),
-            unit: Value(est['unit'] as String?),
+                Value((estMap['confidenceLevel'] as num?)?.toDouble() ?? 0.9),
+            binaryChoice: Value(estMap['binaryChoice'] as bool?),
+            lowerBound: Value((estMap['lowerBound'] as num?)?.toDouble()),
+            upperBound: Value((estMap['upperBound'] as num?)?.toDouble()),
+            unit: Value(estMap['unit'] as String?),
           ));
         }
 
-        final res = qMap['resolution'] as Map<String, dynamic>?;
-        if (res != null) {
-          await insertResolution(ResolutionsCompanion.insert(
+        final res = qMap['resolution'];
+        if (res is Map) {
+          final resMap = Map<String, dynamic>.from(res);
+          final outcome = resMap['outcome'];
+          if (outcome is! bool) {
+            throw FormatException(
+                'Auflösung zu Frage $i im Backup hat kein gültiges '
+                '"outcome".');
+          }
+          await upsertResolution(ResolutionsCompanion.insert(
             questionId: id,
-            outcome: res['outcome'] as bool,
-            notes: Value(res['notes'] as String?),
+            outcome: outcome,
+            notes: Value(resMap['notes'] as String?),
             numericOutcome:
-                Value((res['numericOutcome'] as num?)?.toDouble()),
+                Value((resMap['numericOutcome'] as num?)?.toDouble()),
           ));
         }
       }
@@ -499,7 +556,7 @@ class AppDatabase extends _$AppDatabase {
             'createdAt': estimate.createdAt.toIso8601String(),
           },
         if (resolution != null)
-          'resolution': _obfuscateResolution({
+          'resolution': obfuscateResolution({
             'outcome': resolution.outcome,
             'numericOutcome': resolution.numericOutcome,
             'notes': resolution.notes,
@@ -513,21 +570,6 @@ class AppDatabase extends _$AppDatabase {
       'questions': result,
     };
   }
-}
-
-/// ROT13 anwenden, dann Base64 kodieren.
-String _obfuscateResolution(Map<String, dynamic> resolution) {
-  final plain = jsonEncode(resolution);
-  final rot13 = _rot13(plain);
-  return base64Encode(utf8.encode(rot13));
-}
-
-String _rot13(String input) {
-  return String.fromCharCodes(input.codeUnits.map((c) {
-    if (c >= 65 && c <= 90) return (c - 65 + 13) % 26 + 65;
-    if (c >= 97 && c <= 122) return (c - 97 + 13) % 26 + 97;
-    return c;
-  }));
 }
 
 LazyDatabase _openConnection() {

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:yaml/yaml.dart';
 
+import 'obfuscation.dart';
+
 class ImportResolution {
   final bool outcome;
   final double? numericOutcome;
@@ -79,13 +81,35 @@ class ImportParseException implements Exception {
 }
 
 class ImportParser {
+  // Limits gegen UI-Verzerrung und Ressourcen-Missbrauch durch
+  // importierte Inhalte (CWE-20).
+  static const maxTextLength = 2000;
+  static const maxTagLength = 100;
+  static const maxTagCount = 50;
+  static const maxSourceLength = 200;
+
+  /// Unicode-Steuerzeichen außer `\n` und `\t`, inkl. Bidi-Overrides
+  /// (z. B. RTL-Override U+202E) und Bidi-Isolaten.
+  static final _controlChars = RegExp(
+      '[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F\\u202A-\\u202E\\u2066-\\u2069]');
+
+  static String _sanitize(String input) =>
+      input.replaceAll(_controlChars, '');
+
+  static String? _sanitizeOpt(String? input) {
+    if (input == null) return null;
+    final cleaned = _sanitize(input).trim();
+    return cleaned.isEmpty ? null : cleaned;
+  }
+
   static ImportFile parse(String content, String filename) {
     Map<String, dynamic> data;
 
-    if (filename.endsWith('.yaml') || filename.endsWith('.yml')) {
+    final lowerName = filename.toLowerCase();
+    if (lowerName.endsWith('.yaml') || lowerName.endsWith('.yml')) {
       final yaml = loadYaml(content);
       data = _yamlToMap(yaml);
-    } else if (filename.endsWith('.json')) {
+    } else if (lowerName.endsWith('.json')) {
       data = jsonDecode(content) as Map<String, dynamic>;
     } else {
       throw ImportParseException(
@@ -164,7 +188,12 @@ class ImportParser {
     if (version == null) {
       throw const ImportParseException('Pflichtfeld "version" fehlt.');
     }
-    final versionInt = (version as num).toInt();
+    final versionInt =
+        version is num ? version.toInt() : int.tryParse(version.toString());
+    if (versionInt == null) {
+      throw const ImportParseException(
+          'Pflichtfeld "version" muss eine Zahl sein.');
+    }
 
     // v1: top-level category Pflichtfeld; v2 (App-Export): category pro Frage
     final topLevelCategory = data['category'] as String?;
@@ -190,15 +219,36 @@ class ImportParser {
       }
       final qMap = Map<String, dynamic>.from(q);
 
-      final text = qMap['text'] as String?;
-      if (text == null || text.trim().isEmpty) {
+      final rawText = qMap['text'] as String?;
+      if (rawText == null || rawText.trim().isEmpty) {
         throw ImportParseException('Frage $i: "text" fehlt oder ist leer.');
+      }
+      final text = _sanitize(rawText).trim();
+      if (text.isEmpty) {
+        throw ImportParseException('Frage $i: "text" fehlt oder ist leer.');
+      }
+      if (text.length > maxTextLength) {
+        throw ImportParseException(
+            'Frage $i: "text" überschreitet $maxTextLength Zeichen.');
       }
 
       final rawTags = qMap['tags'];
       final tags = rawTags is List
-          ? rawTags.map((t) => t.toString()).toList()
+          ? rawTags
+              .map((t) => _sanitize(t.toString()).trim())
+              .where((t) => t.isNotEmpty)
+              .toList()
           : <String>[];
+      if (tags.length > maxTagCount) {
+        throw ImportParseException(
+            'Frage $i: mehr als $maxTagCount Tags.');
+      }
+      for (final tag in tags) {
+        if (tag.length > maxTagLength) {
+          throw ImportParseException(
+              'Frage $i: Tag überschreitet $maxTagLength Zeichen.');
+        }
+      }
 
       DateTime? deadline;
       final rawDeadline = qMap['deadline'];
@@ -236,11 +286,12 @@ class ImportParser {
         final rawEstimate = qMap['estimate'];
         if (rawEstimate is Map) {
           final est = Map<String, dynamic>.from(rawEstimate);
-          probability = (est['probability'] as num?)?.toDouble();
+          probability = _readDouble(est['probability'], i, 'probability');
           binaryChoice = est['binaryChoice'] as bool?;
-          confidenceLevel = (est['confidenceLevel'] as num?)?.toDouble();
-          lowerBound = (est['lowerBound'] as num?)?.toDouble();
-          upperBound = (est['upperBound'] as num?)?.toDouble();
+          confidenceLevel =
+              _readDouble(est['confidenceLevel'], i, 'confidenceLevel');
+          lowerBound = _readDouble(est['lowerBound'], i, 'lowerBound');
+          upperBound = _readDouble(est['upperBound'], i, 'upperBound');
           unit = est['unit'] as String?;
         }
         // Fallback: unit auch auf Fragenebene akzeptieren
@@ -248,20 +299,29 @@ class ImportParser {
       } else {
         questionCategory = null;
         answer = qMap['answer'] as bool?;
-        probability = (qMap['probability'] as num?)?.toDouble();
+        probability = _readDouble(qMap['probability'], i, 'probability');
         binaryChoice = qMap['binaryChoice'] as bool?;
-        confidenceLevel = (qMap['confidenceLevel'] as num?)?.toDouble();
-        lowerBound = (qMap['lowerBound'] as num?)?.toDouble();
-        upperBound = (qMap['upperBound'] as num?)?.toDouble();
+        confidenceLevel =
+            _readDouble(qMap['confidenceLevel'], i, 'confidenceLevel');
+        lowerBound = _readDouble(qMap['lowerBound'], i, 'lowerBound');
+        upperBound = _readDouble(qMap['upperBound'], i, 'upperBound');
         unit = qMap['unit'] as String?;
       }
+
+      _validateRanges(
+        index: i,
+        probability: probability,
+        confidenceLevel: confidenceLevel,
+        lowerBound: lowerBound,
+        upperBound: upperBound,
+      );
 
       // Resolution: plain Map (v1 und v2) oder obfuskierter String (v2-Export)
       ImportResolution? importResolution;
       final rawRes = qMap['resolution'];
       if (rawRes is String && versionInt >= 2) {
         try {
-          final resMap = _deobfuscateResolution(rawRes);
+          final resMap = deobfuscateResolution(rawRes);
           importResolution = _parseResolutionMap(resMap);
         } catch (_) {
           // ungültige Obfuskierung → ignorieren
@@ -269,6 +329,18 @@ class ImportParser {
       } else if (rawRes is Map) {
         importResolution =
             _parseResolutionMap(Map<String, dynamic>.from(rawRes));
+      }
+
+      // Eingebettete "probability"-Schätzungen (v1-Format, CLAUDE.md,
+      // Beispieldaten) in Richtung + Konfidenz ableiten, statt sie beim
+      // Import stillschweigend zu verwerfen.
+      if ((predictionType == 'binary' || predictionType == 'factual') &&
+          binaryChoice == null &&
+          probability != null) {
+        binaryChoice = probability >= 0.5;
+        final directed = probability >= 0.5 ? probability : 1 - probability;
+        confidenceLevel ??=
+            ((directed / 0.05).round() * 0.05).clamp(0.5, 1.0).toDouble();
       }
 
       questions.add(ImportQuestion(
@@ -283,7 +355,7 @@ class ImportParser {
         confidenceLevel: confidenceLevel,
         lowerBound: lowerBound,
         upperBound: upperBound,
-        unit: unit,
+        unit: _sanitizeOpt(unit),
         resolution: importResolution,
       ));
     }
@@ -294,43 +366,64 @@ class ImportParser {
         questions.map((q) => q.category).whereType<String>().firstOrNull ??
         'epistemic';
 
+    final source = _sanitizeOpt(data['source'] as String?);
+    if (source != null && source.length > maxSourceLength) {
+      throw const ImportParseException(
+          'Feld "source" überschreitet $maxSourceLength Zeichen.');
+    }
+
     return ImportFile(
       version: versionInt,
       category: effectiveCategory,
-      source: data['source'] as String?,
+      source: source,
       questions: questions,
     );
+  }
+
+  /// Liest einen optionalen Zahlenwert robust (num oder numerischer String).
+  /// Wirft eine [ImportParseException] mit Fragen-Index, wenn der Wert
+  /// vorhanden, aber keine Zahl ist.
+  static double? _readDouble(dynamic value, int index, String field) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    final parsed = num.tryParse(value.toString());
+    if (parsed == null) {
+      throw ImportParseException(
+          'Frage $index: "$field" muss eine Zahl sein.');
+    }
+    return parsed.toDouble();
+  }
+
+  /// Prüft Wertebereiche der Schätzfelder, damit ungültige Werte
+  /// (z. B. confidenceLevel: 7) nicht Statistik und UI verfälschen.
+  static void _validateRanges({
+    required int index,
+    double? probability,
+    double? confidenceLevel,
+    double? lowerBound,
+    double? upperBound,
+  }) {
+    if (probability != null && (probability < 0 || probability > 1)) {
+      throw ImportParseException(
+          'Frage $index: "probability" muss zwischen 0 und 1 liegen.');
+    }
+    if (confidenceLevel != null &&
+        (confidenceLevel < 0 || confidenceLevel > 1)) {
+      throw ImportParseException(
+          'Frage $index: "confidenceLevel" muss zwischen 0 und 1 liegen.');
+    }
+    if (lowerBound != null && upperBound != null && lowerBound >= upperBound) {
+      throw ImportParseException(
+          'Frage $index: "lowerBound" muss kleiner als "upperBound" sein.');
+    }
   }
 
   static ImportResolution _parseResolutionMap(Map<String, dynamic> map) {
     return ImportResolution(
       outcome: map['outcome'] as bool? ?? false,
       numericOutcome: (map['numericOutcome'] as num?)?.toDouble(),
-      notes: map['notes'] as String?,
+      notes: _sanitizeOpt(map['notes'] as String?),
     );
-  }
-
-  /// Encodes a resolution map as ROT13-then-Base64 string (v2 share format).
-  static String obfuscateResolution(Map<String, dynamic> resolution) {
-    final plain = jsonEncode(resolution);
-    final rot13 = _rot13(plain);
-    return base64Encode(utf8.encode(rot13));
-  }
-
-  /// Base64 dekodieren, dann ROT13 dekodieren.
-  static Map<String, dynamic> _deobfuscateResolution(String obfuscated) {
-    final bytes = base64Decode(obfuscated);
-    final rot13encoded = utf8.decode(bytes);
-    final plain = _rot13(rot13encoded);
-    return jsonDecode(plain) as Map<String, dynamic>;
-  }
-
-  static String _rot13(String input) {
-    return String.fromCharCodes(input.codeUnits.map((c) {
-      if (c >= 65 && c <= 90) return (c - 65 + 13) % 26 + 65;
-      if (c >= 97 && c <= 122) return (c - 97 + 13) % 26 + 97;
-      return c;
-    }));
   }
 
   static Map<String, dynamic> _yamlToMap(dynamic yaml) {

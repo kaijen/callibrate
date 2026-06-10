@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' as drift;
 import '../../../core/providers.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/calibration_math.dart';
+import '../../../core/utils/format_utils.dart';
 import '../../../shared/widgets/estimate_inputs.dart';
 import '../../../shared/widgets/feedback_sheet.dart';
 
@@ -16,19 +17,32 @@ final _estimateProvider =
 
 // --- Screen ---
 
-class EstimateScreen extends ConsumerWidget {
+class EstimateScreen extends ConsumerStatefulWidget {
   final int questionId;
 
   const EstimateScreen({super.key, required this.questionId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(appDatabaseProvider);
+  ConsumerState<EstimateScreen> createState() => _EstimateScreenState();
+}
 
+class _EstimateScreenState extends ConsumerState<EstimateScreen> {
+  // Einmal laden statt bei jedem Rebuild eine neue DB-Abfrage zu starten.
+  late final Future<(Question, Estimate?)> _future = _load();
+
+  Future<(Question, Estimate?)> _load() async {
+    final db = ref.read(appDatabaseProvider);
+    final question = await db.getQuestion(widget.questionId);
+    final estimate = await db.getEstimateForQuestion(widget.questionId);
+    return (question, estimate);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Schätzung abgeben')),
       body: FutureBuilder<(Question, Estimate?)>(
-        future: _load(db),
+        future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -41,12 +55,6 @@ class EstimateScreen extends ConsumerWidget {
         },
       ),
     );
-  }
-
-  Future<(Question, Estimate?)> _load(AppDatabase db) async {
-    final question = await db.getQuestion(questionId);
-    final estimate = await db.getEstimateForQuestion(questionId);
-    return (question, estimate);
   }
 }
 
@@ -73,6 +81,20 @@ class _EstimateBodyState extends ConsumerState<_EstimateBody> {
     _unitController = TextEditingController(
       text: knownUnit == null ? (widget.existingEstimate?.unit ?? '') : '',
     );
+
+    // Bestehende Schätzung ins Formular übernehmen, damit beim Bearbeiten
+    // nicht wieder die Defaults (90 %, keine Auswahl) erscheinen.
+    final existing = widget.existingEstimate;
+    if (existing != null) {
+      ref.read(_estimateProvider.notifier).initFrom(
+            binaryChoice: existing.binaryChoice,
+            confidenceLevel: existing.confidenceLevel,
+            lowerBoundText:
+                existing.lowerBound != null ? formatNum(existing.lowerBound) : '',
+            upperBoundText:
+                existing.upperBound != null ? formatNum(existing.upperBound) : '',
+          );
+    }
   }
 
   @override
@@ -232,7 +254,6 @@ class _EstimateBodyState extends ConsumerState<_EstimateBody> {
         unit: unit,
       ),
     );
-    ref.invalidate(predictionsStreamProvider);
 
     final resolution = await db.getResolutionForQuestion(widget.question.id);
     if (resolution != null && context.mounted) {
@@ -252,6 +273,7 @@ class _EstimateBodyState extends ConsumerState<_EstimateBody> {
           }
         }
       }
+      if (!context.mounted) return;
       await _showFeedback(context, db, effectiveOutcome, probability, resolution);
       if (context.mounted) context.pop();
     } else if (context.mounted) {
@@ -279,12 +301,7 @@ class _EstimateBodyState extends ConsumerState<_EstimateBody> {
 
     List<({double probability, double outcome})> toPairs(
             List<PredictionView> views) =>
-        views
-            .map((v) => (
-                  probability: v.estimate!.probability,
-                  outcome: v.resolution!.outcome ? 1.0 : 0.0,
-                ))
-            .toList();
+        views.map(CalibrationStats.pairFor).toList();
 
     final overallStats = CalibrationStats.compute(toPairs(resolved));
     final typeResolved =
@@ -292,6 +309,7 @@ class _EstimateBodyState extends ConsumerState<_EstimateBody> {
     final typeStats = CalibrationStats.compute(toPairs(typeResolved));
 
     final estimate = await db.getEstimateForQuestion(widget.question.id);
+    if (!context.mounted) return;
 
     await showModalBottomSheet<void>(
       context: context,

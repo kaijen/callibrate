@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Embedded `probability` estimates in import files (v1 format, as used
+  by the bundled sample data) are no longer silently dropped; they are
+  converted into a direction plus confidence level (#111)
+- Resolving a question twice (e.g. by double-tapping) could create
+  duplicate resolutions that permanently crashed the detail and
+  statistics screens for that question. Resolutions are now unique per
+  question (schema v6 deduplicates existing data) and resolving again
+  updates the existing entry (#108)
+- Restoring a backup is now atomic: if the backup file turns out to be
+  corrupt mid-restore, the existing data is kept instead of being lost
+  (#105)
+- Brier score on the dashboard and in the feedback sheet now uses the
+  same direction-based semantics as the statistics screen; the three
+  displays no longer contradict each other (#104)
+- Deadline reminders were scheduled in UTC instead of the device time
+  zone; the 9:00 reminder now fires at 9:00 local time (#103)
+- Winkler score now uses the error tolerance (α = 1 − confidence level)
+  instead of the confidence level itself, matching the standard interval
+  score (Gneiting & Raftery). Missed intervals with high confidence are
+  now penalized harder, not milder. Displayed historical Winkler values
+  change accordingly; no data migration is required (#102)
+
 ## [1.7.1-beta.1] - 2026-06-01
 
 ### Added

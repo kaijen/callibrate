@@ -290,7 +290,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await BackupService.restoreBackup(
           db: db, backupJson: backupJson, password: password);
 
-      ref.invalidate(predictionsStreamProvider);
       await _loadAiSettings();
 
       if (mounted) {
@@ -353,7 +352,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _launchDocs() async {
     final info = await PackageInfo.fromPlatform();
-    final version = info.version.replaceFirst(RegExp(r'^v'), '');
+    // versionName enthält seit dem Release-Workflow-Fix kein v-Präfix mehr.
+    // Lokale Builds tragen die pubspec-Platzhalter-Version (0.1.0) bzw.
+    // Prerelease-Tags haben keine eigene Doku-Version – dann auf die
+    // "latest"-Doku ausweichen.
+    final version = (info.version == '0.1.0' || info.version.contains('-'))
+        ? 'latest'
+        : info.version;
     final uri = Uri.parse('https://kaijen.github.io/kailibrate/$version/');
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
@@ -377,11 +382,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         tags: tags,
         onDelete: (tag) async {
           await db.deleteTagGlobally(tag);
-          ref.invalidate(predictionsStreamProvider);
         },
         onRename: (oldTag, newTag) async {
           await db.renameTagGlobally(oldTag, newTag);
-          ref.invalidate(predictionsStreamProvider);
         },
       ),
     );
@@ -425,7 +428,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final db = ref.read(appDatabaseProvider);
     await db.resetDatabase();
-    ref.invalidate(predictionsStreamProvider);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -609,6 +611,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: const Text('Speichern'),
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Hinweis: Anfragen an OpenRouter senden die App-Kennung '
+                    'mit (HTTP-Referer/X-Title, ohne persönliche Daten) – '
+                    'Details in der Dokumentation.',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ],
               ),
             ),
@@ -754,6 +763,36 @@ class _TemplateManagerDialogState extends State<_TemplateManagerDialog> {
                     icon: const Icon(Icons.delete_outline),
                     color: Theme.of(context).colorScheme.error,
                     onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Vorlage löschen'),
+                          content: Text(
+                            'Die Vorlage „${t.name}" wird endgültig '
+                            'gelöscht. Diese Aktion kann nicht rückgängig '
+                            'gemacht werden.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(ctx).pop(false),
+                              child: const Text('Abbrechen'),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(ctx).colorScheme.error,
+                                foregroundColor:
+                                    Theme.of(ctx).colorScheme.onError,
+                              ),
+                              onPressed: () =>
+                                  Navigator.of(ctx).pop(true),
+                              child: const Text('Löschen'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
                       await PromptTemplateService.delete(t.id);
                       final updated =
                           await PromptTemplateService.loadAll();

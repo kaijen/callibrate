@@ -8,6 +8,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/api_key_service.dart';
 import '../../../core/services/prompt_template_service.dart';
+import '../../../core/utils/obfuscation.dart';
 import '../../../core/utils/import_parser.dart';
 import 'ai_generator_provider.dart';
 
@@ -214,7 +215,7 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
                         ),
                   )
                 : DropdownButtonFormField<String>(
-                    value: genState.selectedModel,
+                    initialValue: genState.selectedModel,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       contentPadding:
@@ -546,7 +547,7 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
           'deadline': q.deadline!.toIso8601String(),
       };
       if (q.hasResolution) {
-        map['resolution'] = ImportParser.obfuscateResolution({
+        map['resolution'] = obfuscateResolution({
           'outcome': q.resolution!.outcome,
           if (q.resolution!.numericOutcome != null)
             'numericOutcome': q.resolution!.numericOutcome,
@@ -627,7 +628,7 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
           );
 
           if (q.hasResolution) {
-            await db.insertResolution(
+            await db.upsertResolution(
               ResolutionsCompanion.insert(
                 questionId: id,
                 outcome: q.resolution!.outcome,
@@ -679,7 +680,6 @@ class _AiGeneratorScreenState extends ConsumerState<AiGeneratorScreen> {
         );
       });
 
-      ref.invalidate(predictionsStreamProvider);
       notifier.setImported(questionsToImport.length);
 
       if (context.mounted && skippedCount > 0) {
@@ -732,7 +732,7 @@ class _TemplateSelector extends ConsumerWidget {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: selectedTemplate?.id,
+                  initialValue: selectedTemplate?.id,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding:
