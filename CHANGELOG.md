@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-06-02
+
 ### Fixed
+- Android release build for Flutter 3.44 / Kotlin 2.0
 - Embedded `probability` estimates in import files (v1 format, as used
   by the bundled sample data) are no longer silently dropped; they are
   converted into a direction plus confidence level (#111)
@@ -764,7 +767,8 @@ breaking changes will follow semver and require a major version bump.
 - Settings screen, tag filter, and clipboard import for question sets
 - GitHub Actions release workflow for tag-triggered APK builds
 
-[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.7.1-beta.1...HEAD
+[Unreleased]: https://github.com/kaijen/kailibrate/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/kaijen/kailibrate/compare/v1.7.1-beta.1...v1.7.1
 [1.7.1-beta.1]: https://github.com/kaijen/kailibrate/compare/v1.7.0...v1.7.1-beta.1
 [1.7.0]: https://github.com/kaijen/kailibrate/compare/v1.6.0...v1.7.0
 [1.7.0-beta.7]: https://github.com/kaijen/kailibrate/compare/v1.7.0-beta.6...v1.7.0-beta.7
